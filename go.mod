@@ -16,6 +16,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.2.2 // indirect
 	github.com/patsoffice/reago v0.0.0-20200328164243-566c8e8c6e4d
 	github.com/pelletier/go-toml v1.6.0 // indirect

@@ -2,29 +2,46 @@ sudo: false
 language: go
 os: osx
 go:
-- stable
+  - stable
 matrix:
   include:
   - os: osx
     osx_image: xcode10.1
   fast_finish: true
+
+before_install:
+  # gox simplifies building for multiple architectures
+  - go get github.com/mitchellh/gox
+
+install:
+  - # skip
+
 before_script:
-- if which sw_vers; then sw_vers; fi
-- go get -u golang.org/x/lint/golint
+  - if which sw_vers; then sw_vers; fi
+  - go get -u golang.org/x/lint/golint
+
 script:
-- go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+  - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+  - gox -os="linux darwin windows" -arch="amd64" -output="{{.Dir}}_{{.OS}}_{{.Arch}}" -ldflags "-X github.com/patsoffice/aliasman/internal/cmd.Rev=`git rev-parse --short HEAD` -X github.com/patsoffice/aliasman/internal/cmd.Ver=$TRAVIS_BRANCH" -verbose ./...
+
 after_script:
-- test -z "$(gofmt -s -l -w . | tee /dev/stderr)"
-- test -z "$(golint ./...     | tee /dev/stderr)"
-- go vet ./...
+  - test -z "$(gofmt -s -l -w . | tee /dev/stderr)"
+  - test -z "$(golint ./...     | tee /dev/stderr)"
+  - go vet ./...
+
 after_success:
-- bash <(curl -s https://codecov.io/bash)
+  - bash <(curl -s https://codecov.io/bash)
+
 notifications:
   email: false
 deploy:
   provider: releases
   api_key:
     secure: MNlebKPORc2Q79kqCVmcCjwN2mEwt/FDymMfqLuduX2hWls0xjPbi4mIgUO08Wtko+U21gdnJstWgINRdTfFyAxD88y4Sz2mpk1+lCCwxxNj/SSag4sDKvBWXOOCIKUZJXA3zAX8Sx36mZ3xwAolqjc4tdDKWJYH6ZimGHKwVGR4I3WLMvwXUslT1bFqzLpwwXrfiNfq0OslW4uPx9geEJtZzxMpkETwU73fp1ZDOgISZh2QthjUmvZ2unsLDyHd8c8fISVBZXwBlAONARiYUQISslET3SHjgLvzk9hTnoPvcUmU5Kt1Lo/+P7Y+biSDeoo7wz3y4SVJqUw0thcjRVHRk569T5cyCMUhWUJE/vINBe4MJnRa8J4VTXdrXGPR0DV3ygd0GAJREju6nW5QVr4/rW8nlGUEgusVK1oluZhgJxGV27fjbuytQSSgZub/bTm3XjR6oIH5VlParZp8hz0nKuNdUN9I4+7gMOBNimRpTSAuhmHjuQYF7QJ6HR2oB0cE6ptQdzvyqN3Vj07NSBLRIbz1jaXInlh4Z45RNtP6LJDfkyr8YkihTmT5vCnqzkHj33tJxuKW6jFF7+RNpwfte44I5UZSu2fe2swAMmECw3E1m670x9N++/izKVjToFNxvN1ecw9dTb+Mh3OV6HekHV6IAa8bV0BrujIQhJc=
-  file: aliasman
+  file:
+    - aliasman_darwin_amd64
+    - aliasman_linux_amd64
+    - aliasman_windows_amd64.exe
   on:
     repo: patsoffice/aliasman
+    tags: true
