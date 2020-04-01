@@ -1,0 +1,31 @@
+sudo: false
+language: go
+os: osx
+go:
+  - "stable"
+
+matrix:
+  include:
+    - os: osx
+      osx_image: xcode11.3
+    - os: osx
+      osx_image: xcode10.1
+  fast_finish: true
+
+before_script:
+  - if which sw_vers; then sw_vers; fi
+  - go get -u github.com/golang/lint/golint
+
+script:
+  - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+after_script:
+  - test -z "$(gofmt -s -l -w . | tee /dev/stderr)"
+  - test -z "$(golint ./...     | tee /dev/stderr)"
+  - go vet ./...
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+notifications:
+  email: false
