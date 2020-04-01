@@ -14,7 +14,7 @@ matrix:
 
 before_script:
   - if which sw_vers; then sw_vers; fi
-  - go get -u github.com/golang/lint/golint
+  - go get -u golang.org/x/lint/golint
 
 script:
   - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
