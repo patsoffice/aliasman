@@ -3,6 +3,7 @@ module github.com/patsoffice/aliasman
 go 1.14
 
 require (
+	cloud.google.com/go v0.56.0 // indirect
 	github.com/DATA-DOG/go-sqlmock v1.4.1
 	github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496 // indirect
 	github.com/aws/aws-sdk-go v1.29.34
@@ -16,7 +17,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.2.2 // indirect
 	github.com/patsoffice/reago v0.0.0-20200328164243-566c8e8c6e4d
 	github.com/pelletier/go-toml v1.6.0 // indirect
@@ -30,7 +30,9 @@ require (
 	github.com/stretchr/testify v1.5.1
 	go.mongodb.org/mongo-driver v1.3.1 // indirect
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
-	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775 // indirect
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+	google.golang.org/api v0.20.0
+	google.golang.org/genproto v0.0.0-20200401122417-09ab7b7031d2 // indirect
 	gopkg.in/ini.v1 v1.55.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

@@ -58,7 +58,7 @@ func (cn *ConfigerNewer) Config() error {
 		secretKey := util.GetInputString(scanner, "Rackspace API secret key", viper.GetString("rackspace_api_secret_key"))
 		viper.Set("rackspace_api_secret_key,", secretKey)
 
-		if ok := util.CheckYes(scanner, "Make rackspace_email_api the default storage provider?", true); ok {
+		if ok := util.CheckYes(scanner, "Make rackspace_email_api the default email provider?", true); ok {
 			viper.Set("email_type", "rackspace_email_api")
 		}
 	}

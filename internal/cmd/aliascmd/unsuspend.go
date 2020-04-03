@@ -79,7 +79,7 @@ func aliasUnsuspendRun(cobraCmd *cobra.Command, args []string) {
 		cmd.ErrorExit(fmt.Errorf("Failure getting alias from %s storage: %v", sp.Type(), err), nil)
 	}
 
-	err = ep.AliasCreate(aliasUnsuspendFlags.alias, aliasUnsuspendFlags.domain, a.EmailAddresses)
+	err = ep.AliasCreate(aliasUnsuspendFlags.alias, aliasUnsuspendFlags.domain, a.EmailAddresses...)
 	if err != nil {
 		cmd.ErrorExit(err, nil)
 	}

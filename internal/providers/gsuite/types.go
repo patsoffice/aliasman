@@ -18,32 +18,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// If the interface for ProviderFactory is changed, in the root directory of
-// this project run:
-//
-//     go install github.com/progrium/go-extpoints
-//     go generate ./...
-//
-//go:generate go-extpoints . ProviderFactory
+package gsuite
 
-package email
+import (
+	"context"
 
-import "github.com/patsoffice/aliasman/internal/alias"
+	"github.com/patsoffice/aliasman/internal/alias"
+	"github.com/patsoffice/aliasman/internal/email"
+	"github.com/patsoffice/aliasman/internal/util"
+	admin "google.golang.org/api/admin/directory/v1"
+)
 
-// ProviderFactory is implemented by any email provider in order to create
-// new instances and configure them for use. The configuration values are
-// stored in and read from Viper.
-type ProviderFactory interface {
-	New() (Provider, error)
-	Config() error
+func init() {
+	cn := new(ConfigerNewer)
+	email.ProviderFactories.Register(cn, "gsuite")
 }
 
-// Provider is implemented by any email provider giving the ability to create,
-// list and delete aliases on the email system.
-type Provider interface {
-	Type() string
-	Description() string
-	AliasCreate(string, string, ...string) error
-	AliasDelete(string, string, ...string) error
-	AliasList(string, ...string) (alias.Aliases, error)
+// ConfigerNewer implements the factory methods for the rackspace_email_api
+// provider.
+type ConfigerNewer struct{}
+
+// Emailer implements the email provder methods for the rackspace_email_api.
+type Emailer struct {
+	readOnly bool
+	clock    util.Clock
+	aliases  alias.AliasesMap
+	srv      *admin.Service
+	ctx      context.Context
 }

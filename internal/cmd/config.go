@@ -48,11 +48,15 @@ func init() {
 
 func runInit(cmd *cobra.Command, args []string) {
 	for _, f := range storage.ProviderFactories.All() {
-		f.Config()
+		if err := f.Config(); err != nil {
+			ErrorExit(err, nil)
+		}
 	}
 
 	for _, f := range email.ProviderFactories.All() {
-		f.Config()
+		if err := f.Config(); err != nil {
+			ErrorExit(err, nil)
+		}
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)

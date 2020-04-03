@@ -38,8 +38,8 @@ func (r *Emailer) Description() string {
 }
 
 // AliasCreate creates an email alias on the Rackspace Email service. If there
-// is a problem creating the email address, an error is returned.
-func (r *Emailer) AliasCreate(alias, domain string, addresses []string) error {
+// is a problem creating the email alias, an error is returned.
+func (r *Emailer) AliasCreate(alias, domain string, addresses ...string) error {
 	if resp, err := r.client.RackspaceEmailAliases.Add(r.ctx, domain, alias, addresses); err != nil {
 		if v, ok := resp.Response.Header["X-Error-Message"]; ok {
 			return fmt.Errorf("rackspace_email_api: failure creating alias: %s", strings.Join(v, " "))
@@ -50,8 +50,8 @@ func (r *Emailer) AliasCreate(alias, domain string, addresses []string) error {
 }
 
 // AliasDelete deletes an email alias from the Rackspace Email service. If
-// there is a problem deleting the email address, an error is returned.
-func (r *Emailer) AliasDelete(alias, domain string) error {
+// there is a problem deleting the email alias, an error is returned.
+func (r *Emailer) AliasDelete(alias, domain string, addresses ...string) error {
 	if resp, err := r.client.RackspaceEmailAliases.Delete(r.ctx, domain, alias); err != nil {
 		if v, ok := resp.Response.Header["X-Error-Message"]; ok {
 			// We can ignore 404 error codes ("Non-existent alias")
@@ -71,7 +71,7 @@ func (r *Emailer) AliasDelete(alias, domain string) error {
 // Please note that this operation can be slow for a large number of aliases
 // since there is no bulk GET operation provided by the API. The client
 // performs throttling internally to prevent errors from the service.
-func (r *Emailer) AliasList(domain string) (alias.Aliases, error) {
+func (r *Emailer) AliasList(domain string, addresses ...string) (alias.Aliases, error) {
 	list, resp, err := r.client.RackspaceEmailAliases.Index(r.ctx, nil, domain)
 	if err != nil {
 		if v, ok := resp.Response.Header["X-Error-Message"]; ok {

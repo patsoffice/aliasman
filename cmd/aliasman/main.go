@@ -25,7 +25,11 @@ import (
 	// ensure that the aliascmd package is loaded
 	_ "github.com/patsoffice/aliasman/internal/cmd/aliascmd"
 
+	// Email providers
+	_ "github.com/patsoffice/aliasman/internal/providers/gsuite"
 	_ "github.com/patsoffice/aliasman/internal/providers/rea"
+
+	// Storage providers
 	_ "github.com/patsoffice/aliasman/internal/providers/s3"
 	_ "github.com/patsoffice/aliasman/internal/providers/sqlite3"
 )

@@ -158,7 +158,7 @@ func aliasCreateRun(cobraCmd *cobra.Command, args []string) {
 		cmd.ErrorExit(fmt.Errorf("alias %s for domain %s already exists", aliasCreateFlags.alias, aliasCreateFlags.domain), nil)
 	}
 
-	err = ep.AliasCreate(aliasCreateFlags.alias, aliasCreateFlags.domain, aliasCreateFlags.addresses)
+	err = ep.AliasCreate(aliasCreateFlags.alias, aliasCreateFlags.domain, aliasCreateFlags.addresses...)
 	if err != nil {
 		cmd.ErrorExit(err, nil)
 	}

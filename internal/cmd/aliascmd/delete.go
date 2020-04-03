@@ -37,8 +37,9 @@ var (
 		Run:   aliasDeleteRun,
 	}
 	aliasDeleteFlags = struct {
-		alias  string
-		domain string
+		alias     string
+		domain    string
+		addresses []string
 	}{}
 )
 
@@ -48,6 +49,7 @@ func init() {
 
 	aliasDeleteCmd.Flags().StringVarP(&aliasDeleteFlags.domain, "domain", "d", "", "Domain to attach the alias to")
 	aliasDeleteCmd.Flags().StringVarP(&aliasDeleteFlags.alias, "alias", "a", "", "Alias name (minus domain)")
+	aliasDeleteCmd.Flags().StringSliceVarP(&aliasDeleteFlags.addresses, "email-address", "e", []string{}, "Address(es) for alias to send email to (fully qualified)")
 	aliasDeleteCmd.Flags().SortFlags = false
 }
 
@@ -75,7 +77,7 @@ func aliasDeleteRun(cobraCmd *cobra.Command, args []string) {
 		cmd.ErrorExit(fmt.Errorf("alias delete requires %s to not be readonly", sp.Type()), nil)
 	}
 
-	err = ep.AliasDelete(aliasDeleteFlags.alias, aliasDeleteFlags.domain)
+	err = ep.AliasDelete(aliasDeleteFlags.alias, aliasDeleteFlags.domain, aliasDeleteFlags.addresses...)
 	if err != nil {
 		cmd.ErrorExit(err, nil)
 	}

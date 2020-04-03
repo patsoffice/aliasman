@@ -27,6 +27,15 @@ The program will then prompt for information relevant to the operation of the pr
 
 Aliasman supports the following providers and their configuration options (stored in the configuration file):
 
+* `gsuite` - The API fronting [G Suite Admin API](https://developers.google.com/admin-sdk/admin-settings/) (`email_type`)
+  * [Create a project](https://console.cloud.google.com/cloud-resource-manager)
+  * [Create a credential](https://console.developers.google.com/apis/credentials)
+    * Click "+ CREATE CREDENTIALS"
+    * Select "OAuth client ID"
+    * Fill out consent screen (probably want it to be internal)
+    * Create OAuth client ID for application type "Other"
+    * Download the "OAuth 2.0 Client ID" created and name it "gsuite-credentials.json"
+    * Run `aliasman config` and configure the `gsuite` email provider
 * `rackspace_email_api` - The API fronting [Rackspace Email](https://www.rackspace.com/email-hosting/webmail) (`email_type`)
   * `rackspace_api_user_key` - Rackspace API user key ([link to get/make API key](https://cp.rackspace.com/MyAccount/Profile?showApiKeys))
   * `rackspace_api_secret_key` - Rackspace API secret key
