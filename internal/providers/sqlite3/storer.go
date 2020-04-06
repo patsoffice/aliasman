@@ -163,6 +163,15 @@ func (s Storer) Put(alias alias.Alias, updateModified bool) error {
 	return nil
 }
 
+// Update stores the updated Alias in the database. If the updateModified
+// flag is set, the modified timestamp column is updated with the timestamp
+// of when the Update call was made. The error condition of the Update
+// operation is returned.
+func (s Storer) Update(alias alias.Alias, updateModified bool) error {
+	// We can just call Put since the SQL is an INSERT OR UPDATE
+	return s.Put(alias, updateModified)
+}
+
 // Search applies the filter to the database query results and returns a
 // sorted list of aliases that match the filter criteria.
 func (s Storer) Search(f alias.Filter, matchAnyRegexp bool) (alias.Aliases, error) {

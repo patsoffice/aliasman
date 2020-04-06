@@ -412,10 +412,28 @@ func (s *Storer) Put(alias alias.Alias, updateModified bool) error {
 		return errors.New("S3 opened readonly")
 	}
 
+	s.aliases.Add(alias)
+
 	if err := s.putAlias(alias, updateModified); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+// Update PUTs an Alias' content into an S3 key. The alias fields are stored in
+// the key metadata. An error is returned if there is a failure interacting
+// with S3.
+func (s *Storer) Update(alias alias.Alias, updateModified bool) error {
+	if s.readOnly {
+		return errors.New("S3 opened readonly")
+	}
+
+	if err := s.putAlias(alias, updateModified); err != nil {
+		return err
+	}
+
+	s.aliases.Del(alias)
 	s.aliases.Add(alias)
 
 	return nil

@@ -48,6 +48,7 @@ type Provider interface {
 	Close() error
 	Get(string, string) (*alias.Alias, error)
 	Put(alias.Alias, bool) error
+	Update(alias.Alias, bool) error
 	Search(alias.Filter, bool) (alias.Aliases, error)
 	Suspend(string, string) error
 	Unsuspend(string, string) error
