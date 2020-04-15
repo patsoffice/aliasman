@@ -18,23 +18,41 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package main
+package files
 
 import (
-	"github.com/patsoffice/aliasman/internal/cmd"
-	// ensure that the aliascmd package is loaded
-	_ "github.com/patsoffice/aliasman/internal/cmd/aliascmd"
+	"time"
 
-	// Email providers
-	_ "github.com/patsoffice/aliasman/internal/providers/gsuite"
-	_ "github.com/patsoffice/aliasman/internal/providers/rea"
-
-	// Storage providers
-	_ "github.com/patsoffice/aliasman/internal/providers/files"
-	_ "github.com/patsoffice/aliasman/internal/providers/s3"
-	_ "github.com/patsoffice/aliasman/internal/providers/sqlite3"
+	"github.com/patsoffice/aliasman/internal/alias"
+	"github.com/patsoffice/aliasman/internal/storage"
+	"github.com/patsoffice/aliasman/internal/util"
 )
 
-func main() {
-	cmd.Execute()
+func init() {
+	cn := new(ConfigerNewer)
+	storage.ProviderFactories.Register(cn, "files")
+}
+
+// ConfigerNewer implements the factory methods for the files provider.
+type ConfigerNewer struct{}
+
+// Storer implements the storage provder methods and state for the files
+// provider.
+type Storer struct {
+	filesPath string
+	readOnly  bool
+	aliases   alias.AliasesMap
+	clock     util.Clock
+}
+
+// FileAlias represents the state necessary for a file alias.
+type FileAlias struct {
+	Alias          string    `json:"alias"`
+	Domain         string    `json:"domain"`
+	EmailAddresses []string  `json:"email_addresses"`
+	Description    string    `json:"description"`
+	Suspended      bool      `json:"suspended"`
+	CreatedTS      time.Time `json:"created_ts"`
+	ModifiedTS     time.Time `json:"modified_ts"`
+	SuspendedTS    time.Time `json:"suspended_ts"`
 }
