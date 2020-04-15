@@ -23,7 +23,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/magiconair/properties/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRootCmd(t *testing.T) {

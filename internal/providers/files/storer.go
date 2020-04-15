@@ -54,7 +54,6 @@ func (sa FileAlias) toAlias() alias.Alias {
 		ModifiedTS:     sa.ModifiedTS,
 		SuspendedTS:    sa.SuspendedTS,
 	}
-	fmt.Println(a.CreatedTS)
 
 	return a
 }
@@ -71,10 +70,11 @@ func (s *Storer) Open(readOnly bool) error {
 
 	stat, err := os.Stat(s.filesPath)
 	if err != nil {
-		if !s.readOnly {
-			if err := os.MkdirAll(s.filesPath, 0700); err != nil {
-				return fmt.Errorf("cannot create files directory: %v", err)
-			}
+		if s.readOnly {
+			return fmt.Errorf("files opened read-only and files path does not exist: %s", s.filesPath)
+		}
+		if err := os.MkdirAll(s.filesPath, 0700); err != nil {
+			return fmt.Errorf("cannot create files directory: %v", err)
 		}
 	}
 	if !stat.IsDir() {
@@ -107,7 +107,7 @@ func (s *Storer) Close() error {
 	return nil
 }
 
-func (s *Storer) aliasFilename(a, d string) string {
+func aliasFilename(a, d string) string {
 	return fmt.Sprintf("alias-%s-%s", a, d)
 }
 
@@ -115,7 +115,7 @@ func (s *Storer) aliasFilename(a, d string) string {
 // is returned with any error condition during retrieval.
 func (s Storer) Get(alias, domain string) (*alias.Alias, error) {
 	a := FileAlias{}
-	b, err := ioutil.ReadFile(filepath.Join(s.filesPath, s.aliasFilename(alias, domain)))
+	b, err := ioutil.ReadFile(filepath.Join(s.filesPath, aliasFilename(alias, domain)))
 	if err != nil {
 		return nil, fmt.Errorf("%v", err)
 	}
@@ -142,6 +142,20 @@ func toFileAlias(a alias.Alias) FileAlias {
 	return fa
 }
 
+func writeAliasFile(filesPath string, fa FileAlias) error {
+	buf, err := json.MarshalIndent(fa, "", " ")
+	if err != nil {
+		return fmt.Errorf("error marshalling JSON: %v", err)
+	}
+
+	fn := filepath.Join(filesPath, aliasFilename(fa.Alias, fa.Domain))
+	if err := ioutil.WriteFile(fn, buf, 0644); err != nil {
+		return fmt.Errorf("error writing file %s: %v", fn, err)
+	}
+
+	return nil
+}
+
 // Put stores the Alias in a file. If the updateModified flag is set,
 // the modified timestamp field is updated with the timestamp of when the
 // Put call was made. The error condition of the Put operation is returned.
@@ -150,22 +164,14 @@ func (s Storer) Put(a alias.Alias, updateModified bool) error {
 		return errors.New("files provider opened readonly")
 	}
 
-	fa := toFileAlias(a)
-
 	if updateModified {
-		fa.ModifiedTS = s.clock.Now()
+		a.ModifiedTS = s.clock.Now()
 	}
 
-	file, err := json.MarshalIndent(fa, "", " ")
-	if err != nil {
-		return fmt.Errorf("error marshalling JSON: %v", err)
+	fa := toFileAlias(a)
+	if err := writeAliasFile(s.filesPath, fa); err != nil {
+		return fmt.Errorf("unable to write alias file: %v", err)
 	}
-
-	fn := filepath.Join(s.filesPath, s.aliasFilename(fa.Alias, fa.Domain))
-	if err := ioutil.WriteFile(fn, file, 0644); err != nil {
-		return fmt.Errorf("error writing file %s: %v", fn, err)
-	}
-
 	s.aliases.Add(a)
 
 	return nil
@@ -250,10 +256,17 @@ func (s Storer) Unsuspend(alias, domain string) error {
 
 // Delete removes the row from the database representing the alias. An error
 // is returned if there is a failure interacting with database.
-func (s Storer) Delete(alias, domain string) error {
+func (s Storer) Delete(a, d string) error {
 	if s.readOnly {
 		return errors.New("files provider opened readonly")
 	}
-	// BUG(patsoffice) actually delete the file...
+
+	fn := filepath.Join(s.filesPath, aliasFilename(a, d))
+	if err := os.Remove(fn); err != nil {
+		return fmt.Errorf("error removing file %s: %v", fn, err)
+	}
+
+	s.aliases.Del(alias.Alias{Alias: a, Domain: d})
+
 	return nil
 }

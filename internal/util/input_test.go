@@ -3,7 +3,7 @@ package util
 import (
 	"testing"
 
-	"github.com/magiconair/properties/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 type mockScanner struct {
