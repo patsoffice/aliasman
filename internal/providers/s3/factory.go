@@ -31,7 +31,7 @@ import (
 	"github.com/patsoffice/aliasman/internal/alias"
 	"github.com/patsoffice/aliasman/internal/cmd"
 	"github.com/patsoffice/aliasman/internal/storage"
-	"github.com/patsoffice/aliasman/internal/util"
+	"github.com/patsoffice/toolbox"
 	"github.com/spf13/viper"
 )
 
@@ -64,28 +64,28 @@ func init() {
 func (cn *ConfigerNewer) Config() error {
 	scanner := bufio.NewScanner(os.Stdin)
 
-	if ok := util.CheckYes(scanner, "Configure S3 provider?", false); ok {
-		region := util.GetInputString(scanner, "S3 region", viper.GetString("s3_region"))
+	if ok := toolbox.CheckYes(scanner, "Configure S3 provider?", false); ok {
+		region := toolbox.GetInputString(scanner, "S3 region", viper.GetString("s3_region"))
 		viper.Set("s3_region", region)
 
-		accessKey := util.GetInputString(scanner, "S3 access key", viper.GetString("s3_access_key"))
+		accessKey := toolbox.GetInputString(scanner, "S3 access key", viper.GetString("s3_access_key"))
 		viper.Set("s3_access_key", accessKey)
 
-		secretKey := util.GetInputString(scanner, "S3 secret key", viper.GetString("s3_secret_key"))
+		secretKey := toolbox.GetInputString(scanner, "S3 secret key", viper.GetString("s3_secret_key"))
 		viper.Set("s3_secret_key", secretKey)
 
-		bucket := util.GetInputString(scanner, "S3 bucket", viper.GetString("s3_bucket"))
+		bucket := toolbox.GetInputString(scanner, "S3 bucket", viper.GetString("s3_bucket"))
 		viper.Set("s3_bucket", bucket)
 
-		if ok := util.CheckYes(scanner, "Configure advanced S3 options?", false); ok {
-			concurrentHeads := util.GetInputInt(scanner, "Number of concurrent HEAD calls", viper.GetInt("s3_concurrent_heads"))
+		if ok := toolbox.CheckYes(scanner, "Configure advanced S3 options?", false); ok {
+			concurrentHeads := toolbox.GetInputInt(scanner, "Number of concurrent HEAD calls", viper.GetInt("s3_concurrent_heads"))
 			viper.Set("s3_concurrent_heads", concurrentHeads)
 
-			channelDepth := util.GetInputInt(scanner, "Size of concurrency channels", viper.GetInt("s3_channel_depth"))
+			channelDepth := toolbox.GetInputInt(scanner, "Size of concurrency channels", viper.GetInt("s3_channel_depth"))
 			viper.Set("s3_channel_depth", channelDepth)
 		}
 
-		if ok := util.CheckYes(scanner, "Make s3 the default storage provider?", true); ok {
+		if ok := toolbox.CheckYes(scanner, "Make s3 the default storage provider?", true); ok {
 			viper.Set("storage_type", "s3")
 		}
 	}
@@ -101,7 +101,7 @@ func (cn *ConfigerNewer) New() (storage.Provider, error) {
 
 	storer := Storer{
 		bucket: bucket,
-		clock:  util.RealClock{},
+		clock:  toolbox.RealClock{},
 	}
 	storer.svc = s3.New(session.New(&aws.Config{
 		Region:      aws.String(region),

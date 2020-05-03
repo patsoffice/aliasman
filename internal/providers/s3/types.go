@@ -28,7 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/patsoffice/aliasman/internal/alias"
 	"github.com/patsoffice/aliasman/internal/storage"
-	"github.com/patsoffice/aliasman/internal/util"
+	"github.com/patsoffice/toolbox"
 )
 
 func init() {
@@ -65,7 +65,7 @@ type IndexAliases []IndexAlias
 // provider.
 type Storer struct {
 	readOnly        bool
-	clock           util.Clock
+	clock           toolbox.Clock
 	aliases         alias.AliasesMap
 	objects         objects
 	region          string

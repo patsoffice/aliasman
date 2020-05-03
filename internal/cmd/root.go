@@ -33,8 +33,9 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "aliasman",
 		Short: "aliasman is a tool for managing email aliases",
-		Long: `Rackspace email allows for a large number of email aliases. The aliasman tool
-allows for the creation, read, update and delete of Rackspace email aliases.
+		Long: `Rackspace email, GSuite and others allow for a large number of email aliases.
+The aliasman tool allows for the creation, read, update and delete of
+ aliases with various service providers.
 `,
 	}
 	rootFlags = struct {

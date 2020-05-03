@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/patsoffice/aliasman/internal/util"
+	"github.com/patsoffice/toolbox"
 	"github.com/pmezard/go-difflib/difflib"
 )
 
@@ -41,7 +41,7 @@ func (a Alias) Equal(b Alias) bool {
 	if !a.CreatedTS.Equal(b.CreatedTS) || !a.ModifiedTS.Equal(b.ModifiedTS) || !a.SuspendedTS.Equal(b.SuspendedTS) {
 		return false
 	}
-	if !util.StringSliceEqual(a.EmailAddresses, b.EmailAddresses) {
+	if !toolbox.StringSliceEqual(a.EmailAddresses, b.EmailAddresses) {
 		return false
 	}
 	return true

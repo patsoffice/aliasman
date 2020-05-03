@@ -29,7 +29,7 @@ import (
 
 	"github.com/patsoffice/aliasman/internal/email"
 	"github.com/patsoffice/aliasman/internal/storage"
-	"github.com/patsoffice/aliasman/internal/util"
+	"github.com/patsoffice/toolbox"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -61,15 +61,15 @@ func runInit(cmd *cobra.Command, args []string) {
 
 	scanner := bufio.NewScanner(os.Stdin)
 
-	if ok := util.CheckYes(scanner, "Set a default domain?", false); ok {
-		defaultDomain := util.GetInputString(scanner, "Domain", viper.GetString("default_domain"))
+	if ok := toolbox.CheckYes(scanner, "Set a default domain?", false); ok {
+		defaultDomain := toolbox.GetInputString(scanner, "Domain", viper.GetString("default_domain"))
 		viper.Set("default_domain", defaultDomain)
 	}
 
-	if ok := util.CheckYes(scanner, "Set default email address(es)?", false); ok {
+	if ok := toolbox.CheckYes(scanner, "Set default email address(es)?", false); ok {
 		defaultEmails := strings.Join(viper.GetStringSlice("default_addresses"), ", ")
 		for {
-			defaultEmails = util.GetInputString(scanner, "Email addresses (comma separated)", defaultEmails)
+			defaultEmails = toolbox.GetInputString(scanner, "Email addresses (comma separated)", defaultEmails)
 			defaultEmails = strings.ReplaceAll(defaultEmails, " ", "")
 			emails := strings.Split(defaultEmails, ",")
 			if len(emails) == 0 {
@@ -83,7 +83,7 @@ func runInit(cmd *cobra.Command, args []string) {
 
 	cfgDir := DefaultDir()
 	if !pathExists(cfgDir) {
-		if ok := util.CheckYes(scanner, fmt.Sprintf("Create configuration directory: %s?", cfgDir), true); ok {
+		if ok := toolbox.CheckYes(scanner, fmt.Sprintf("Create configuration directory: %s?", cfgDir), true); ok {
 			if err := os.MkdirAll(rootFlags.cfgDir, os.ModeDir|0700); err != nil {
 				ErrorExit(err, nil)
 			}
@@ -91,7 +91,7 @@ func runInit(cmd *cobra.Command, args []string) {
 	}
 
 	cfgPath := filepath.Join(cfgDir, DefaultConfigFile())
-	if ok := util.CheckYes(scanner, fmt.Sprintf("Write config file: %s?", cfgPath), true); ok {
+	if ok := toolbox.CheckYes(scanner, fmt.Sprintf("Write config file: %s?", cfgPath), true); ok {
 		viper.WriteConfigAs(cfgPath)
 	}
 }

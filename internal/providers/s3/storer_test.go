@@ -30,7 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
-	"github.com/patsoffice/aliasman/internal/util"
+	"github.com/patsoffice/toolbox"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -174,7 +174,7 @@ func TestParseTS(t *testing.T) {
 
 	for _, table := range tables {
 		s := Storer{
-			clock: util.MockClock{NowTime: table.expected},
+			clock: toolbox.MockClock{NowTime: table.expected},
 		}
 
 		ts := s.parseTS(table.metadata, table.key)

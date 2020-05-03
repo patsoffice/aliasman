@@ -19,6 +19,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.2.2 // indirect
 	github.com/patsoffice/reago v0.0.0-20200328164243-566c8e8c6e4d
+	github.com/patsoffice/toolbox v0.0.0-20200503001601-b719ff99c0d8
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/spf13/afero v1.2.2 // indirect

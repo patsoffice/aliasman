@@ -25,7 +25,7 @@ import (
 
 	"github.com/patsoffice/aliasman/internal/alias"
 	"github.com/patsoffice/aliasman/internal/email"
-	"github.com/patsoffice/aliasman/internal/util"
+	"github.com/patsoffice/toolbox"
 	admin "google.golang.org/api/admin/directory/v1"
 )
 
@@ -41,7 +41,7 @@ type ConfigerNewer struct{}
 // Emailer implements the email provder methods for the rackspace_email_api.
 type Emailer struct {
 	readOnly bool
-	clock    util.Clock
+	clock    toolbox.Clock
 	aliases  alias.AliasesMap
 	srv      *admin.Service
 	ctx      context.Context

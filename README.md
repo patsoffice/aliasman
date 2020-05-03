@@ -10,10 +10,19 @@ The tool is currently only tested on Mac OS X systems, but should just work on o
 
 ## Installing
 
-Installing Aliasman is easy. First, use `go get` to install the latest version
-of the application from GitHub. This command will install the `aliasman` executable in the Go path:
+### Directly From GitHub
 
-    go get -u github.com/aliasman/cmd/aliasman
+Installing aliasman is easy. First, use `go get` to install the latest version of the application
+from GitHub. This command will install the `aliasman` executable in the Go path:
+
+    go get -u github.com/patsoffice/aliasman
+
+The above command requires a working [Go compiler installed](https://golang.org/doc/install).
+
+### Homebrew
+
+    brew tap patsoffice/tools
+    brew install aliasman
 
 ## Configuring
 

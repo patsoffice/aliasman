@@ -23,8 +23,8 @@ package rea
 import (
 	"github.com/patsoffice/aliasman/internal/alias"
 	"github.com/patsoffice/aliasman/internal/email"
-	"github.com/patsoffice/aliasman/internal/util"
 	"github.com/patsoffice/reago"
+	"github.com/patsoffice/toolbox"
 	"golang.org/x/net/context"
 )
 
@@ -40,7 +40,7 @@ type ConfigerNewer struct{}
 // Emailer implements the email provder methods for the rackspace_email_api.
 type Emailer struct {
 	readOnly bool
-	clock    util.Clock
+	clock    toolbox.Clock
 	aliases  map[string]alias.Alias
 	client   *reago.Client
 	ctx      context.Context

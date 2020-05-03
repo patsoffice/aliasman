@@ -32,7 +32,7 @@ import (
 
 	"github.com/patsoffice/aliasman/internal/cmd"
 	"github.com/patsoffice/aliasman/internal/email"
-	"github.com/patsoffice/aliasman/internal/util"
+	"github.com/patsoffice/toolbox"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -60,7 +60,7 @@ func (cn *ConfigerNewer) getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, 
 
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	msg := "Go to the following link in your browser: \n\n%v\n\nthen type the authorization code"
-	authCode := util.GetInputString(scanner, fmt.Sprintf(msg, authURL), "")
+	authCode := toolbox.GetInputString(scanner, fmt.Sprintf(msg, authURL), "")
 
 	tok, err := config.Exchange(context.TODO(), authCode)
 	if err != nil {
@@ -97,8 +97,8 @@ func (cn *ConfigerNewer) saveToken(path string, token *oauth2.Token) error {
 func (cn *ConfigerNewer) Config() error {
 	scanner := bufio.NewScanner(os.Stdin)
 
-	if ok := util.CheckYes(scanner, "Configure gsuite provider", false); ok {
-		credentiasPath := util.GetInputString(scanner, "GSuite credential path", viper.GetString("gsuite_credentials"))
+	if ok := toolbox.CheckYes(scanner, "Configure gsuite provider", false); ok {
+		credentiasPath := toolbox.GetInputString(scanner, "GSuite credential path", viper.GetString("gsuite_credentials"))
 		b, err := ioutil.ReadFile(credentiasPath)
 		if err != nil {
 			return fmt.Errorf("Unable to read client secret file: %v", err)
@@ -109,7 +109,7 @@ func (cn *ConfigerNewer) Config() error {
 		}
 		viper.Set("gsuite_credentials,", credentiasPath)
 
-		tokenPath := util.GetInputString(scanner, "GSuite token path", viper.GetString("gsuite_token"))
+		tokenPath := toolbox.GetInputString(scanner, "GSuite token path", viper.GetString("gsuite_token"))
 		if tok, err := cn.tokenFromFile(tokenPath); err != nil {
 			cmd.ErrorNoExit(err)
 			if tok, err = cn.getTokenFromWeb(config); err != nil {
@@ -121,7 +121,7 @@ func (cn *ConfigerNewer) Config() error {
 		}
 		viper.Set("gsuite_token,", tokenPath)
 
-		if ok := util.CheckYes(scanner, "Make gsuite the default email provider?", true); ok {
+		if ok := toolbox.CheckYes(scanner, "Make gsuite the default email provider?", true); ok {
 			viper.Set("email_type", "gsuite")
 		}
 	}

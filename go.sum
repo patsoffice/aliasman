@@ -211,6 +211,8 @@ github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRW
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/patsoffice/reago v0.0.0-20200328164243-566c8e8c6e4d h1:H2Nk5vJJMI4xqpcDfYi+l9YJ5y5GsAhBo55rjKRtrCM=
 github.com/patsoffice/reago v0.0.0-20200328164243-566c8e8c6e4d/go.mod h1:e8D1ij7jFejEUg+ntZzBSDyNX3EMMQdc5+d3dfiTYfk=
+github.com/patsoffice/toolbox v0.0.0-20200503001601-b719ff99c0d8 h1:plcsbSAPRs8omu7lA/u7yBnw+zwRm1EujQbSqjHsf9o=
+github.com/patsoffice/toolbox v0.0.0-20200503001601-b719ff99c0d8/go.mod h1:eZ/mepRzc2S6sEz1JDXIxLwIjHcmaxWcJ0WwCVNIXpM=
 github.com/pelletier/go-toml v1.2.0 h1:T5zMGML61Wp+FlcbWjRDT7yAxhJNAiPPLOFECq181zc=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pelletier/go-toml v1.4.0/go.mod h1:PN7xzY2wHTK0K9p34ErDQMlFxa51Fk0OUruD3k1mMwo=

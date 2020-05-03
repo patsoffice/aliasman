@@ -28,7 +28,7 @@ import (
 
 	"github.com/patsoffice/aliasman/internal/alias"
 	"github.com/patsoffice/aliasman/internal/storage"
-	"github.com/patsoffice/aliasman/internal/util"
+	"github.com/patsoffice/toolbox"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -130,9 +130,9 @@ func syncCmdRun(cmd *cobra.Command, args []string) {
 			ok := false
 			if !syncFlags.yes {
 				if doCopy {
-					ok = util.CheckYes(scanner, fmt.Sprintf("Add alias for %s@%s to %s?", v.Alias, v.Domain, destProvider.Type()), true)
+					ok = toolbox.CheckYes(scanner, fmt.Sprintf("Add alias for %s@%s to %s?", v.Alias, v.Domain, destProvider.Type()), true)
 				} else {
-					ok = util.CheckYes(scanner, fmt.Sprintf("Update alias for %s@%s to %s: %s?", v.Alias, v.Domain, destProvider.Type(), uDiff), true)
+					ok = toolbox.CheckYes(scanner, fmt.Sprintf("Update alias for %s@%s to %s: %s?", v.Alias, v.Domain, destProvider.Type(), uDiff), true)
 				}
 			}
 

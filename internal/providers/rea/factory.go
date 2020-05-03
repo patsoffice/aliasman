@@ -28,8 +28,8 @@ import (
 
 	"github.com/patsoffice/aliasman/internal/cmd"
 	"github.com/patsoffice/aliasman/internal/email"
-	"github.com/patsoffice/aliasman/internal/util"
 	"github.com/patsoffice/reago"
+	"github.com/patsoffice/toolbox"
 	"github.com/spf13/viper"
 )
 
@@ -51,14 +51,14 @@ func init() {
 func (cn *ConfigerNewer) Config() error {
 	scanner := bufio.NewScanner(os.Stdin)
 
-	if ok := util.CheckYes(scanner, "Configure rackspace_email_api provider", false); ok {
-		userKey := util.GetInputString(scanner, "Rackspace API user key", viper.GetString("rackspace_api_user_key"))
+	if ok := toolbox.CheckYes(scanner, "Configure rackspace_email_api provider", false); ok {
+		userKey := toolbox.GetInputString(scanner, "Rackspace API user key", viper.GetString("rackspace_api_user_key"))
 		viper.Set("rackspace_api_user_key,", userKey)
 
-		secretKey := util.GetInputString(scanner, "Rackspace API secret key", viper.GetString("rackspace_api_secret_key"))
+		secretKey := toolbox.GetInputString(scanner, "Rackspace API secret key", viper.GetString("rackspace_api_secret_key"))
 		viper.Set("rackspace_api_secret_key,", secretKey)
 
-		if ok := util.CheckYes(scanner, "Make rackspace_email_api the default email provider?", true); ok {
+		if ok := toolbox.CheckYes(scanner, "Make rackspace_email_api the default email provider?", true); ok {
 			viper.Set("email_type", "rackspace_email_api")
 		}
 	}

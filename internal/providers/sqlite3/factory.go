@@ -27,7 +27,7 @@ import (
 
 	"github.com/patsoffice/aliasman/internal/cmd"
 	"github.com/patsoffice/aliasman/internal/storage"
-	"github.com/patsoffice/aliasman/internal/util"
+	"github.com/patsoffice/toolbox"
 	"github.com/spf13/viper"
 )
 
@@ -45,11 +45,11 @@ func init() {
 func (cn *ConfigerNewer) Config() error {
 	scanner := bufio.NewScanner(os.Stdin)
 
-	if ok := util.CheckYes(scanner, "Configure sqlite3 provider", false); ok {
-		dbPath := util.GetInputString(scanner, "Sqlite3 database path", viper.GetString("sqlite3_db_path"))
+	if ok := toolbox.CheckYes(scanner, "Configure sqlite3 provider", false); ok {
+		dbPath := toolbox.GetInputString(scanner, "Sqlite3 database path", viper.GetString("sqlite3_db_path"))
 		viper.Set("sqlite3_db_path", dbPath)
 
-		if ok := util.CheckYes(scanner, "Make sqlite3 the default storage provider?", true); ok {
+		if ok := toolbox.CheckYes(scanner, "Make sqlite3 the default storage provider?", true); ok {
 			viper.Set("storage_type", "sqlite3")
 		}
 	}

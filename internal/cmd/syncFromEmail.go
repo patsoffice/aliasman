@@ -27,7 +27,7 @@ import (
 	"regexp"
 
 	"github.com/patsoffice/aliasman/internal/alias"
-	"github.com/patsoffice/aliasman/internal/util"
+	"github.com/patsoffice/toolbox"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -97,7 +97,7 @@ func syncFromEmailCmdRun(cmd *cobra.Command, args []string) {
 		if _, ok := destMap[k]; !ok {
 			yes := false
 			if !syncFromEmailFlags.yes {
-				yes = util.CheckYes(scanner, fmt.Sprintf("Add alias for %s@%s to %s?", v.Alias, v.Domain, sp.Type()), true)
+				yes = toolbox.CheckYes(scanner, fmt.Sprintf("Add alias for %s@%s to %s?", v.Alias, v.Domain, sp.Type()), true)
 			}
 
 			if yes || syncFromEmailFlags.yes {
