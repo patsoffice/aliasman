@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/patsoffice/aliasman/internal/alias"
-	"github.com/patsoffice/aliasman/internal/util"
+	toolbox "github.com/patsoffice/go.toolbox"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,7 +48,7 @@ func setupFilesTest() (*Storer, error) {
 	}
 	s := Storer{
 		filesPath: tempDir,
-		clock:     util.MockClock{NowTime: t1},
+		clock:     toolbox.MockClock{NowTime: t1},
 	}
 	return &s, nil
 }

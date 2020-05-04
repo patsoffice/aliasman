@@ -8,30 +8,13 @@ matrix:
   - os: osx
     osx_image: xcode10.1
   fast_finish: true
-
-before_install:
-  # gox simplifies building for multiple architectures
-  - go get github.com/mitchellh/gox
-
 install:
-  - # skip
-
-before_script:
-  - if which sw_vers; then sw_vers; fi
-  - go get -u golang.org/x/lint/golint
-
+  - go get -t ./...
+  - go get github.com/mattn/goveralls
+  - go get github.com/mitchellh/gox
 script:
-  - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+  - goveralls -v -service=travis-ci
   - gox -os="linux darwin windows" -arch="amd64" -output="{{.Dir}}_{{.OS}}_{{.Arch}}" -ldflags "-X github.com/patsoffice/aliasman/internal/cmd.Rev=`git rev-parse --short HEAD` -X github.com/patsoffice/aliasman/internal/cmd.Ver=$TRAVIS_BRANCH" -verbose ./...
-
-after_script:
-  - test -z "$(gofmt -s -l -w . | tee /dev/stderr)"
-  - test -z "$(golint ./...     | tee /dev/stderr)"
-  - go vet ./...
-
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
-
 notifications:
   email: false
 deploy:

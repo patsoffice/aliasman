@@ -1,5 +1,8 @@
 # Aliasman
 
+[![Build Status](https://travis-ci.com/patsoffice/aliasman.svg?branch=master&status=passed)](https://travis-ci.com/github/patsoffice/aliasman)
+[![Coverage Status](https://coveralls.io/repos/github/patsoffice/aliasman/badge.svg?branch=master)](https://coveralls.io/github/patsoffice/aliasman?branch=master)
+
 Aliasman is a CLI tool for managing a larger number of email aliases. Since I've had my own domain, I've been generating email aliases for every company I do business with on the internet for a number of years and this is the tool that I use to manage it.
 
 ## Overview
@@ -36,6 +39,7 @@ The program will then prompt for information relevant to the operation of the pr
 
 Aliasman supports the following providers and their configuration options (stored in the configuration file):
 
+* `files` - Stores alias metadata in JSON blobs locally (can be replicated by Dropbox, Keybase, etc.)
 * `gsuite` - The API fronting [G Suite Admin API](https://developers.google.com/admin-sdk/admin-settings/) (`email_type`)
   * [Create a project](https://console.cloud.google.com/cloud-resource-manager)
   * [Create a credential](https://console.developers.google.com/apis/credentials)
