@@ -28,8 +28,8 @@ import (
 
 	"github.com/patsoffice/aliasman/internal/cmd"
 	"github.com/patsoffice/aliasman/internal/email"
+	toolbox "github.com/patsoffice/go.toolbox"
 	"github.com/patsoffice/reago"
-	"github.com/patsoffice/toolbox"
 	"github.com/spf13/viper"
 )
 

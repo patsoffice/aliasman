@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/patsoffice/toolbox"
+	toolbox "github.com/patsoffice/go.toolbox"
 	"github.com/pmezard/go-difflib/difflib"
 )
 

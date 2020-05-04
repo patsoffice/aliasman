@@ -29,7 +29,7 @@ import (
 
 	"github.com/patsoffice/aliasman/internal/email"
 	"github.com/patsoffice/aliasman/internal/storage"
-	"github.com/patsoffice/toolbox"
+	toolbox "github.com/patsoffice/go.toolbox"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

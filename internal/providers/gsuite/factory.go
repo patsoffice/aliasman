@@ -32,7 +32,7 @@ import (
 
 	"github.com/patsoffice/aliasman/internal/cmd"
 	"github.com/patsoffice/aliasman/internal/email"
-	"github.com/patsoffice/toolbox"
+	toolbox "github.com/patsoffice/go.toolbox"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"

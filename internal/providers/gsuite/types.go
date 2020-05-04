@@ -25,7 +25,7 @@ import (
 
 	"github.com/patsoffice/aliasman/internal/alias"
 	"github.com/patsoffice/aliasman/internal/email"
-	"github.com/patsoffice/toolbox"
+	toolbox "github.com/patsoffice/go.toolbox"
 	admin "google.golang.org/api/admin/directory/v1"
 )
 

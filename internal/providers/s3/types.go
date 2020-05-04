@@ -28,7 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/patsoffice/aliasman/internal/alias"
 	"github.com/patsoffice/aliasman/internal/storage"
-	"github.com/patsoffice/toolbox"
+	toolbox "github.com/patsoffice/go.toolbox"
 )
 
 func init() {
