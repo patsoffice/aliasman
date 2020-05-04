@@ -412,11 +412,11 @@ func (s *Storer) Put(alias alias.Alias, updateModified bool) error {
 		return errors.New("S3 opened readonly")
 	}
 
-	s.aliases.Add(alias)
-
 	if err := s.putAlias(alias, updateModified); err != nil {
 		return err
 	}
+
+	s.aliases.Add(alias)
 
 	return nil
 }
