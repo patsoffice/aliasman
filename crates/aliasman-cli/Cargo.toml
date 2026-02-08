@@ -1,0 +1,16 @@
+[package]
+name = "aliasman-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "aliasman"
+path = "src/main.rs"
+
+[dependencies]
+aliasman-core = { path = "../aliasman-core" }
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+comfy-table = "7"
+chrono = "0.4"
+tokio = { version = "1", features = ["full"] }

@@ -1,1 +1,0 @@
-This directory holds all of the "alias" sub-commands.
