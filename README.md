@@ -18,7 +18,8 @@ aliasman/
 │   │       ├── config.rs         # AppConfig with serde + config crate
 │   │       ├── storage/
 │   │       │   ├── mod.rs        # StorageProvider trait
-│   │       │   └── sqlite.rs     # SQLite implementation (sqlx)
+│   │       │   ├── sqlite.rs     # SQLite implementation (sqlx)
+│   │       │   └── s3.rs         # S3 implementation (aws-sdk-s3)
 │   │       └── email/
 │   │           ├── mod.rs        # EmailProvider trait
 │   │           └── rackspace.rs  # Rackspace Email implementation
@@ -28,7 +29,8 @@ aliasman/
 │           ├── commands/
 │           │   ├── mod.rs
 │           │   ├── alias.rs      # alias create/delete/list
-│           │   └── config.rs     # config command
+│           │   ├── config.rs     # config command
+│           │   └── storage.rs    # storage convert command
 │           └── output.rs         # Table formatting (comfy-table)
 ```
 
@@ -50,7 +52,7 @@ aliasman/
 | Provider | Status      | Description                                               |
 |----------|-------------|-----------------------------------------------------------|
 | `sqlite` | Implemented | SQLite via sqlx. Default: `~/.config/aliasman/aliasman.db` |
-| `s3`     | Planned     | AWS S3 with per-alias objects and an index blob           |
+| `s3`     | Implemented | AWS S3 with per-alias objects and an index blob           |
 | `files`  | Planned     | JSON files on the local filesystem                        |
 
 **Email providers** manage actual email routing:
@@ -100,6 +102,9 @@ pub trait EmailProvider: Send + Sync {
 | `thiserror` | Library error types |
 | `anyhow` | CLI error handling |
 | `async-trait` | Async trait support |
+| `aws-sdk-s3` | AWS S3 SDK |
+| `aws-config` | AWS configuration and credentials |
+| `serde_json` | JSON serialization for S3 storage |
 | `rand` | Random alias generation |
 
 ## Installing
@@ -146,6 +151,39 @@ db_path = "~/.config/aliasman/work.db"
 type = "rackspace"
 user_key = "your-work-api-user-key"
 secret_key = "your-work-api-secret-key"
+
+# S3 storage example (using AWS credential chain)
+[systems.s3-example]
+domain = "example.com"
+email_addresses = ["person@example.com"]
+
+[systems.s3-example.storage]
+type = "s3"
+bucket = "my-aliasman-bucket"
+region = "us-east-1"
+
+[systems.s3-example.email]
+type = "rackspace"
+user_key = "your-api-user-key"
+secret_key = "your-api-secret-key"
+
+# S3 storage example with static credentials (for MinIO, LocalStack)
+[systems.s3-local]
+domain = "example.com"
+email_addresses = ["person@example.com"]
+
+[systems.s3-local.storage]
+type = "s3"
+bucket = "aliasman-bucket"
+region = "us-east-1"
+endpoint = "http://localhost:9000"
+access_key_id = "minioadmin"
+secret_access_key = "minioadmin"
+
+[systems.s3-local.email]
+type = "rackspace"
+user_key = "your-api-user-key"
+secret_key = "your-api-secret-key"
 ```
 
 Use `--system work` to target a specific system, or omit it to use `default_system`.
@@ -182,10 +220,63 @@ Use a specific system:
 aliasman --system work alias list
 ```
 
+### Storage Conversion
+
+Convert aliases between storage systems:
+
+```sh
+# Convert from SQLite to S3
+aliasman storage convert --source home --destination s3-example
+
+# Convert from legacy Go S3 format to new S3 format
+aliasman storage convert --source legacy-s3 --destination s3-new --legacy-source
+
+# Convert from S3 to SQLite
+aliasman storage convert --source s3-example --destination home
+```
+
+The `--legacy-source` flag enables reading from the legacy Go S3 format (metadata stored in S3 object headers). This is useful for migrating from the original Go implementation of aliasman.
+
 Full help is available for all commands and subcommands with `--help`.
+
+## Storage Formats
+
+### SQLite Storage
+
+SQLite is the default storage provider, storing aliases in a local database file.
+
+### S3 Storage (New Rust Format)
+
+The new Rust-native S3 format stores aliases as JSON objects with the following structure:
+
+- **Object key**: `alias-{alias}@{domain}` (e.g., `alias-shopping@example.com`)
+- **JSON body**: Contains all alias fields with Rust naming conventions
+  - `alias`: The alias name
+  - `domain`: The domain
+  - `email_addresses`: Array of email addresses
+  - `description`: Description text
+  - `suspended`: Boolean flag
+  - `created_at`: RFC3339 timestamp
+  - `modified_at`: RFC3339 timestamp
+  - `suspended_at`: RFC3339 timestamp or `null`
+- **Index object**: An `index` object stores a JSON array of all aliases for fast loading
+
+### Legacy Go S3 Format
+
+The original Go implementation stored aliases differently:
+
+- **Object key**: Same format (`alias-{alias}@{domain}`)
+- **Object body**: Empty (0 bytes)
+- **Metadata headers**: All data stored in S3 object metadata
+  - `alias`, `domain`, `description`, `email_addresses` (comma-separated)
+  - `suspended` ("true"/"false")
+  - `created_ts`, `modified_ts`, `suspended_ts` (RFC3339)
+- **Go zero time**: `"0001-01-01T00:00:00Z"` represents unset timestamps
+
+Use `--legacy-source` flag when converting from the old format.
 
 ## Planned Features
 
 - **Additional CLI commands** — suspend, unsuspend, search, audit, sync, sync-from-email, update-description
-- **Additional providers** — S3 storage, files storage, Google Workspace email
+- **Additional providers** — files storage, Google Workspace email
 - **Web frontend** — A separate binary crate serving a web UI, consuming the same `aliasman-core` library

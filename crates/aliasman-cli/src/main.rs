@@ -37,6 +37,12 @@ enum Commands {
 
     /// Print version information
     Version,
+
+    /// Storage management commands
+    Storage {
+        #[command(subcommand)]
+        command: commands::storage::StorageCommands,
+    },
 }
 
 #[tokio::main]
@@ -70,6 +76,10 @@ async fn main() -> Result<()> {
                 system.email_addresses.as_deref(),
             )
             .await?;
+        }
+
+        Commands::Storage { command } => {
+            commands::storage::handle(command, &cli.config_dir).await?;
         }
     }
 

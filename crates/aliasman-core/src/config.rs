@@ -63,6 +63,19 @@ pub struct SystemConfig {
 pub enum StorageConfig {
     #[serde(rename = "sqlite")]
     Sqlite { db_path: String },
+
+    #[serde(rename = "s3")]
+    S3 {
+        bucket: String,
+        #[serde(default)]
+        region: Option<String>,
+        #[serde(default)]
+        endpoint: Option<String>,
+        #[serde(default)]
+        access_key_id: Option<String>,
+        #[serde(default)]
+        secret_access_key: Option<String>,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -154,6 +167,7 @@ secret_key = "test-secret"
             StorageConfig::Sqlite { db_path } => {
                 assert_eq!(db_path, "~/.config/aliasman/home.db");
             }
+            _ => panic!("expected SQLite storage"),
         }
 
         match &system.email {
@@ -255,6 +269,7 @@ secret_key = "secret"
             StorageConfig::Sqlite { db_path } => {
                 assert_eq!(db_path, "/tmp/test.db");
             }
+            _ => panic!("expected SQLite storage"),
         }
     }
 
@@ -263,5 +278,87 @@ secret_key = "secret"
         let expanded = AppConfig::expand_path("~/test");
         assert!(!expanded.to_string_lossy().contains('~'));
         assert!(expanded.to_string_lossy().ends_with("/test"));
+    }
+
+    #[test]
+    fn test_deserialize_s3_config() {
+        let toml = r#"
+default_system = "home-s3"
+
+[systems.home-s3]
+domain = "example.com"
+email_addresses = ["user@example.com"]
+
+[systems.home-s3.storage]
+type = "s3"
+bucket = "my-aliasman-bucket"
+region = "us-east-1"
+
+[systems.home-s3.email]
+type = "rackspace"
+user_key = "test-key"
+secret_key = "test-secret"
+"#;
+        let config: AppConfig = toml::from_str(toml).unwrap();
+        assert_eq!(config.default_system, "home-s3");
+
+        let system = config.system(None).unwrap();
+        match &system.storage {
+            StorageConfig::S3 {
+                bucket,
+                region,
+                endpoint,
+                access_key_id,
+                secret_access_key,
+            } => {
+                assert_eq!(bucket, "my-aliasman-bucket");
+                assert_eq!(region.as_deref(), Some("us-east-1"));
+                assert!(endpoint.is_none());
+                assert!(access_key_id.is_none());
+                assert!(secret_access_key.is_none());
+            }
+            _ => panic!("expected S3 storage"),
+        }
+    }
+
+    #[test]
+    fn test_deserialize_s3_config_with_credentials() {
+        let toml = r#"
+default_system = "home-s3"
+
+[systems.home-s3.storage]
+type = "s3"
+bucket = "my-bucket"
+region = "eu-west-1"
+endpoint = "http://localhost:9000"
+access_key_id = "AKIAIOSFODNN7EXAMPLE"
+secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+[systems.home-s3.email]
+type = "rackspace"
+user_key = "key"
+secret_key = "secret"
+"#;
+        let config: AppConfig = toml::from_str(toml).unwrap();
+        let system = config.system(None).unwrap();
+        match &system.storage {
+            StorageConfig::S3 {
+                bucket,
+                region,
+                endpoint,
+                access_key_id,
+                secret_access_key,
+            } => {
+                assert_eq!(bucket, "my-bucket");
+                assert_eq!(region.as_deref(), Some("eu-west-1"));
+                assert_eq!(endpoint.as_deref(), Some("http://localhost:9000"));
+                assert_eq!(access_key_id.as_deref(), Some("AKIAIOSFODNN7EXAMPLE"));
+                assert_eq!(
+                    secret_access_key.as_deref(),
+                    Some("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
+                );
+            }
+            _ => panic!("expected S3 storage"),
+        }
     }
 }

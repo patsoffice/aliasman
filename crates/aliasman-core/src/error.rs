@@ -34,3 +34,9 @@ impl From<rackspace_email::ApiError> for Error {
         Error::Email(Box::new(e))
     }
 }
+
+impl From<serde_json::Error> for Error {
+    fn from(e: serde_json::Error) -> Self {
+        Error::Storage(Box::new(e))
+    }
+}

@@ -99,7 +99,9 @@ pub fn generate_random_alias(length: usize) -> String {
 
     let length = length.min(32);
     let mut rng = rand::rng();
-    let bytes: Vec<u8> = (0..(length + 1) / 2).map(|_| rng.random::<u8>()).collect();
+    let bytes: Vec<u8> = (0..length.div_ceil(2))
+        .map(|_| rng.random::<u8>())
+        .collect();
     let hex: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
     hex[..length].to_string()
 }

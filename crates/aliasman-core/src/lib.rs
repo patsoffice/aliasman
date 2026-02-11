@@ -12,6 +12,7 @@ use crate::email::rackspace::RackspaceEmailProvider;
 use crate::email::EmailProvider;
 use crate::error::{Error, Result};
 use crate::model::{Alias, AliasFilter};
+use crate::storage::s3::S3Storage;
 use crate::storage::sqlite::SqliteStorage;
 use crate::storage::StorageProvider;
 
@@ -22,6 +23,42 @@ pub fn create_storage_provider(config: &StorageConfig) -> Box<dyn StorageProvide
             let expanded = AppConfig::expand_path(db_path);
             Box::new(SqliteStorage::new(&expanded))
         }
+        StorageConfig::S3 {
+            bucket,
+            region,
+            endpoint,
+            access_key_id,
+            secret_access_key,
+        } => Box::new(S3Storage::new(
+            bucket,
+            region.clone(),
+            endpoint.clone(),
+            access_key_id.clone(),
+            secret_access_key.clone(),
+            false, // legacy_mode = false
+        )),
+    }
+}
+
+/// Create a storage provider in legacy mode (for reading old Go S3 format during conversion).
+pub fn create_storage_provider_legacy(config: &StorageConfig) -> Box<dyn StorageProvider> {
+    match config {
+        StorageConfig::S3 {
+            bucket,
+            region,
+            endpoint,
+            access_key_id,
+            secret_access_key,
+        } => Box::new(S3Storage::new(
+            bucket,
+            region.clone(),
+            endpoint.clone(),
+            access_key_id.clone(),
+            secret_access_key.clone(),
+            true, // legacy_mode = true
+        )),
+        // For non-S3 providers, just use the regular factory
+        _ => create_storage_provider(config),
     }
 }
 
@@ -118,6 +155,77 @@ pub fn build_alias(
         modified_at: now,
         suspended_at: None,
     }
+}
+
+/// Result of a storage conversion operation.
+#[derive(Debug)]
+pub struct ConvertResult {
+    pub total: usize,
+    pub inserted: usize,
+    pub updated: usize,
+    pub skipped: usize,
+}
+
+/// Convert aliases from one storage provider to another.
+///
+/// 1. Opens the source storage read-only and reads all aliases
+/// 2. Opens the destination storage read-write
+/// 3. For each alias: skips if identical exists, updates if differs, inserts if missing
+/// 4. Closes both storages (destination write triggers index update for S3)
+pub async fn convert_storage(
+    source: &mut dyn StorageProvider,
+    dest: &mut dyn StorageProvider,
+) -> Result<ConvertResult> {
+    // Open source read-only and read all aliases
+    source.open(true).await?;
+    let source_aliases = source.search(&AliasFilter::default()).await?;
+    source.close().await?;
+
+    // Open destination read-write
+    dest.open(false).await?;
+
+    let mut result = ConvertResult {
+        total: source_aliases.len(),
+        inserted: 0,
+        updated: 0,
+        skipped: 0,
+    };
+
+    for alias in source_aliases {
+        match dest.get(&alias.alias, &alias.domain).await? {
+            Some(existing) => {
+                // Check if alias is different
+                if alias_matches(&existing, &alias) {
+                    // Identical, skip
+                    result.skipped += 1;
+                } else {
+                    // Different, update
+                    dest.update(&alias).await?;
+                    result.updated += 1;
+                }
+            }
+            None => {
+                // Doesn't exist, insert
+                dest.put(&alias).await?;
+                result.inserted += 1;
+            }
+        }
+    }
+
+    dest.close().await?;
+
+    Ok(result)
+}
+
+/// Check if two aliases are identical (excluding modified_at which will differ).
+fn alias_matches(a: &Alias, b: &Alias) -> bool {
+    a.alias == b.alias
+        && a.domain == b.domain
+        && a.email_addresses == b.email_addresses
+        && a.description == b.description
+        && a.suspended == b.suspended
+        && a.created_at == b.created_at
+        && a.suspended_at == b.suspended_at
 }
 
 /// Write a default config.toml to the given directory.
