@@ -10,7 +10,6 @@ aws-sdk-s3 = "1"
 chrono = { version = "0.4", features = ["serde"] }
 config = "0.15"
 dirs = "6"
-futures = "0.3"
 md-5 = "0.10"
 rand = "0.9"
 regex = "1"

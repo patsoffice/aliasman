@@ -21,7 +21,7 @@ pub enum AliasCommands {
         domain: Option<String>,
 
         /// Target email address(es)
-        #[arg(short, long = "email-address", required = true)]
+        #[arg(short, long = "email-address")]
         email_address: Vec<String>,
 
         /// Description of the alias
@@ -45,7 +45,7 @@ pub enum AliasCommands {
 
         /// Domain of the alias
         #[arg(short, long)]
-        domain: String,
+        domain: Option<String>,
     },
 
     /// List all aliases
@@ -94,24 +94,35 @@ pub async fn handle(
 
             storage.open(false).await?;
             let alias = build_alias(alias_name, domain, addresses, description);
-            let created = create_alias(storage, email, alias).await?;
-            storage.close().await?;
+            let result = create_alias(storage, email, alias).await;
+            let close_result = storage.close().await;
+            let created = result?;
+            close_result?;
 
             println!("Created alias {}", created);
         }
 
         AliasCommands::Delete { alias, domain } => {
+            let domain = domain
+                .as_deref()
+                .or(default_domain)
+                .context("--domain is required (no default domain configured)")?;
+
             storage.open(false).await?;
-            delete_alias(storage, email, alias, domain).await?;
-            storage.close().await?;
+            let result = delete_alias(storage, email, alias, domain).await;
+            let close_result = storage.close().await;
+            result?;
+            close_result?;
 
             println!("Deleted alias {}@{}", alias, domain);
         }
 
         AliasCommands::List => {
             storage.open(true).await?;
-            let aliases = list_aliases(storage, &AliasFilter::default()).await?;
-            storage.close().await?;
+            let result = list_aliases(storage, &AliasFilter::default()).await;
+            let close_result = storage.close().await;
+            let aliases = result?;
+            close_result?;
 
             if aliases.is_empty() {
                 println!("No aliases found.");

@@ -269,7 +269,9 @@ impl S3Storage {
 
         // Set endpoint if provided (for MinIO, LocalStack, etc.)
         if let Some(endpoint) = &self.endpoint {
-            config_builder = config_builder.endpoint_url(endpoint);
+            config_builder = config_builder
+                .endpoint_url(endpoint)
+                .force_path_style(true);
         }
 
         // Use static credentials if provided, otherwise use default credential chain
@@ -286,11 +288,10 @@ impl S3Storage {
         } else {
             // Load from standard AWS credential chain
             let sdk_config = aws_config::load_from_env().await;
-            config_builder = config_builder.credentials_provider(
-                sdk_config
-                    .credentials_provider()
-                    .expect("credentials provider"),
-            );
+            let credentials_provider = sdk_config
+                .credentials_provider()
+                .ok_or_else(|| Error::Config("no AWS credentials found (check ~/.aws/credentials, environment variables, or instance role)".to_string()))?;
+            config_builder = config_builder.credentials_provider(credentials_provider);
         }
 
         let config = config_builder.build();
@@ -360,9 +361,9 @@ impl StorageProvider for S3Storage {
                 // Check if index is newer than all alias objects
                 let index_modified = index.last_modified.as_ref();
                 let all_aliases_older = alias_objects.iter().all(|o| {
-                    o.last_modified.as_ref().is_none_or(|t| {
-                        index_modified.is_none_or(|idx| t <= idx)
-                    })
+                    o.last_modified
+                        .as_ref()
+                        .is_none_or(|t| index_modified.is_none_or(|idx| t <= idx))
                 });
 
                 if all_aliases_older {
@@ -597,8 +598,9 @@ impl StorageProvider for S3Storage {
         }
         drop(aliases);
 
-        // Update is the same as put for S3
-        self.put(alias).await
+        let mut updated = alias.clone();
+        updated.modified_at = Utc::now();
+        self.put(&updated).await
     }
 
     async fn delete(&self, alias: &str, domain: &str) -> Result<()> {

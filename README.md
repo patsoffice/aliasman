@@ -120,12 +120,16 @@ cargo install --path crates/aliasman-cli
 Create a configuration file at `~/.config/aliasman/config.toml`, or run `aliasman config`
 to generate a starter file.
 
-The config supports multiple named systems. Each system pairs a storage provider with an
-email provider and can have its own default domain and email addresses:
+`default_system` selects which system is used when `--system` is not specified:
 
 ```toml
 default_system = "home"
+```
 
+Each system pairs a storage provider with an email provider, and can set a default domain
+and email addresses. SQLite is the simplest storage option, using a local database file:
+
+```toml
 [systems.home]
 domain = "example.com"
 email_addresses = ["person@example.com"]
@@ -136,9 +140,14 @@ db_path = "~/.config/aliasman/home.db"
 
 [systems.home.email]
 type = "rackspace"
-user_key = "your-home-api-user-key"
-secret_key = "your-home-api-secret-key"
+user_key = "your-api-user-key"
+secret_key = "your-api-secret-key"
+```
 
+You can define multiple named systems (e.g. "home" and "work") and switch between them
+with `--system`:
+
+```toml
 [systems.work]
 domain = "work.com"
 email_addresses = ["me@work.com"]
@@ -151,27 +160,23 @@ db_path = "~/.config/aliasman/work.db"
 type = "rackspace"
 user_key = "your-work-api-user-key"
 secret_key = "your-work-api-secret-key"
+```
 
-# S3 storage example (using AWS credential chain)
-[systems.s3-example]
-domain = "example.com"
-email_addresses = ["person@example.com"]
+S3 storage uses the standard AWS credential chain (environment variables,
+`~/.aws/credentials`, IAM roles, etc.) so no credentials need to be stored in the config
+file:
 
+```toml
 [systems.s3-example.storage]
 type = "s3"
 bucket = "my-aliasman-bucket"
 region = "us-east-1"
+```
 
-[systems.s3-example.email]
-type = "rackspace"
-user_key = "your-api-user-key"
-secret_key = "your-api-secret-key"
+Static credentials can be provided for S3-compatible services like MinIO or LocalStack,
+including a custom endpoint:
 
-# S3 storage example with static credentials (for MinIO, LocalStack)
-[systems.s3-local]
-domain = "example.com"
-email_addresses = ["person@example.com"]
-
+```toml
 [systems.s3-local.storage]
 type = "s3"
 bucket = "aliasman-bucket"
@@ -179,11 +184,6 @@ region = "us-east-1"
 endpoint = "http://localhost:9000"
 access_key_id = "minioadmin"
 secret_access_key = "minioadmin"
-
-[systems.s3-local.email]
-type = "rackspace"
-user_key = "your-api-user-key"
-secret_key = "your-api-secret-key"
 ```
 
 Use `--system work` to target a specific system, or omit it to use `default_system`.

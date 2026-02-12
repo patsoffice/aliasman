@@ -134,7 +134,9 @@ pub async fn list_aliases(
     storage: &dyn StorageProvider,
     filter: &AliasFilter,
 ) -> Result<Vec<Alias>> {
-    storage.search(filter).await
+    let mut aliases = storage.search(filter).await?;
+    aliases.sort();
+    Ok(aliases)
 }
 
 /// Build a new Alias struct with sensible defaults for timestamps.
@@ -199,8 +201,9 @@ pub async fn convert_storage(
                     // Identical, skip
                     result.skipped += 1;
                 } else {
-                    // Different, update
-                    dest.update(&alias).await?;
+                    // Different — delete + put to preserve original timestamps
+                    dest.delete(&alias.alias, &alias.domain).await?;
+                    dest.put(&alias).await?;
                     result.updated += 1;
                 }
             }

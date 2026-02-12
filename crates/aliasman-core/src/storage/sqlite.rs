@@ -94,7 +94,6 @@ impl StorageProvider for SqliteStorage {
     async fn put(&self, alias: &Alias) -> Result<()> {
         let pool = self.pool()?;
         let addresses = alias.email_addresses.join(",");
-        let now = Utc::now();
 
         sqlx::query(
             "INSERT INTO alias (alias, domain, addresses, description, suspended, created_ts, modified_ts, suspended_ts)
@@ -106,7 +105,7 @@ impl StorageProvider for SqliteStorage {
         .bind(&alias.description)
         .bind(alias.suspended)
         .bind(alias.created_at.to_rfc3339())
-        .bind(now.to_rfc3339())
+        .bind(alias.modified_at.to_rfc3339())
         .bind(alias.suspended_at.map(|t| t.to_rfc3339()))
         .execute(pool)
         .await
