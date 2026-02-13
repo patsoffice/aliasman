@@ -1,6 +1,6 @@
 # Aliasman
 
-Aliasman is a CLI tool (with a planned web frontend) for managing a large number of email aliases. It supports pluggable storage and email providers, allowing you to manage alias metadata locally while controlling the actual email routing through your email service provider.
+Aliasman is a tool for managing a large number of email aliases, with both a CLI and a web frontend. It supports pluggable storage and email providers, allowing you to manage alias metadata locally while controlling the actual email routing through your email service provider.
 
 ## Architecture
 
@@ -23,21 +23,30 @@ aliasman/
 │   │       └── email/
 │   │           ├── mod.rs        # EmailProvider trait
 │   │           └── rackspace.rs  # Rackspace Email implementation
-│   └── aliasman-cli/             # Binary: CLI frontend
-│       └── src/
-│           ├── main.rs
-│           ├── commands/
-│           │   ├── mod.rs
-│           │   ├── alias.rs      # alias create/delete/list
-│           │   ├── config.rs     # config command
-│           │   └── storage.rs    # storage convert command
-│           └── output.rs         # Table formatting (comfy-table)
+│   ├── aliasman-cli/             # Binary: CLI frontend
+│   │   └── src/
+│   │       ├── main.rs
+│   │       ├── commands/
+│   │       │   ├── mod.rs
+│   │       │   ├── alias.rs      # alias create/delete/list
+│   │       │   ├── config.rs     # config command
+│   │       │   └── storage.rs    # storage convert command
+│   │       └── output.rs         # Table formatting (comfy-table)
+│   └── aliasman-web/             # Binary: web frontend
+│       ├── src/
+│       │   ├── main.rs           # Axum server, CLI args, startup
+│       │   ├── routes.rs         # HTTP handlers and Askama templates
+│       │   ├── state.rs          # Shared application state
+│       │   ├── error.rs          # Web error type
+│       │   └── auth.rs           # Auth/RBAC stubs (future)
+│       ├── templates/            # Askama HTML templates
+│       └── static/               # Embedded static assets (htmx.min.js)
 ```
 
 ### Design Decisions
 
 - **Fully async** — tokio runtime throughout, including storage. The rackspace-email crate is async and the future web frontend benefits from this.
-- **Workspace with lib + bin** — Core logic lives in `aliasman-core` so both the CLI and a future web frontend can consume it.
+- **Workspace with lib + bins** — Core logic lives in `aliasman-core` so both the CLI and web frontend consume it.
 - **Enum dispatch for providers** — Provider selection uses Rust enums with `serde(tag = "type")` rather than dynamic registration. Type-safe and exhaustive at compile time.
 - **Dual-write pattern** — Mutations (create, delete, suspend, unsuspend) write to both the email provider and storage provider. The email provider manages actual email routing; storage maintains metadata, timestamps, and descriptions.
 - **Testable provider wrappers** — External API clients (e.g. `RackspaceClient`) are wrapped behind internal traits (`RackspaceClientImpl`) so they can be replaced with mocks in tests without hitting real services.
@@ -106,13 +115,21 @@ pub trait EmailProvider: Send + Sync {
 | `aws-config` | AWS configuration and credentials |
 | `serde_json` | JSON serialization for S3 storage |
 | `rand` | Random alias generation |
+| `axum` | Web server framework |
+| `askama` | Compile-time HTML templates |
+| `rust-embed` | Embed static assets in binary |
+| `htmx` | Dynamic interactions (JS, embedded) |
 
 ## Installing
 
 ### From Source
 
 ```sh
+# CLI
 cargo install --path crates/aliasman-cli
+
+# Web frontend
+cargo install --path crates/aliasman-web
 ```
 
 ## Configuring
@@ -220,6 +237,32 @@ Use a specific system:
 aliasman --system work alias list
 ```
 
+### Web Frontend
+
+Start the web server:
+
+```sh
+aliasman-web
+```
+
+This starts a read-only web UI at `http://127.0.0.1:3000` using your existing
+`~/.config/aliasman/config.toml`. The UI provides:
+
+- Alias table with search and filtering (powered by HTMX)
+- System switcher dropdown for multi-system configs
+- Hide suspended / hide enabled toggles
+- Manual refresh button and automatic 60-second polling
+
+Options:
+
+```sh
+# Custom config directory
+aliasman-web --config-dir /path/to/config
+
+# Custom bind address
+aliasman-web --bind 0.0.0.0:8080
+```
+
 ### Storage Conversion
 
 Convert aliases between storage systems:
@@ -279,4 +322,5 @@ Use `--legacy-source` flag when converting from the old format.
 
 - **Additional CLI commands** — suspend, unsuspend, search, audit, sync, sync-from-email, update-description
 - **Additional providers** — files storage, Google Workspace email
-- **Web frontend** — A separate binary crate serving a web UI, consuming the same `aliasman-core` library
+- **Web frontend mutations** — create, delete, suspend, unsuspend aliases from the web UI
+- **Web authentication** — Login flow with RBAC (role-based access control) for multi-user deployments
