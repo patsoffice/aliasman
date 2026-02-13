@@ -34,4 +34,10 @@ pub trait StorageProvider: Send + Sync {
 
     /// Unsuspend an alias (mark as active in storage).
     async fn unsuspend(&self, alias: &str, domain: &str) -> Result<()>;
+
+    /// Refresh the storage provider's data from the underlying backend.
+    /// No-op for backends that query on every access (e.g., SQLite).
+    async fn refresh(&mut self) -> Result<()> {
+        Ok(())
+    }
 }

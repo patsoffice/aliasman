@@ -303,14 +303,11 @@ impl S3Storage {
             .as_ref()
             .ok_or_else(|| Error::Storage("S3 client not initialized".into()))
     }
-}
 
-#[async_trait]
-impl StorageProvider for S3Storage {
-    async fn open(&mut self, read_only: bool) -> Result<()> {
-        self.read_only = read_only;
-        self.client = Some(self.build_s3_client().await?);
-
+    /// Load all aliases from S3 into the in-memory cache.
+    /// Called by both `open()` and `refresh()`. Uses `&self` because
+    /// it writes through the `RwLock` fields.
+    async fn load_aliases(&self) -> Result<()> {
         let client = self.client()?;
         let bucket = self.bucket.clone();
 
@@ -501,6 +498,23 @@ impl StorageProvider for S3Storage {
         }
 
         Ok(())
+    }
+}
+
+#[async_trait]
+impl StorageProvider for S3Storage {
+    async fn open(&mut self, read_only: bool) -> Result<()> {
+        self.read_only = read_only;
+        self.client = Some(self.build_s3_client().await?);
+        self.load_aliases().await
+    }
+
+    async fn refresh(&mut self) -> Result<()> {
+        if self.client.is_none() {
+            return Ok(());
+        }
+        self.aliases.write().await.clear();
+        self.load_aliases().await
     }
 
     async fn close(&mut self) -> Result<()> {
