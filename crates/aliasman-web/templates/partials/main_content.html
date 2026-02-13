@@ -1,0 +1,27 @@
+{% include "partials/toolbar.html" %}
+
+<div class="overflow-x-auto bg-white rounded-lg shadow">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alias</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domain</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email Address(es)</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modified</th>
+            </tr>
+        </thead>
+        <tbody id="alias-table-body" class="divide-y divide-gray-200">
+            {% include "partials/alias_table_rows.html" %}
+        </tbody>
+    </table>
+</div>
+
+<div hx-post="/refresh"
+     hx-trigger="every 60s [document.visibilityState === 'visible']"
+     hx-target="#alias-table-body"
+     hx-include="[name='q'],[name='hide_suspended'],[name='hide_enabled']"
+     hx-swap="innerHTML">
+</div>

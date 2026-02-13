@@ -1,0 +1,52 @@
+<div class="mb-4 flex flex-wrap items-center gap-4">
+    <input type="text"
+           name="q"
+           placeholder="Search aliases..."
+           value="{{ query }}"
+           class="border border-gray-300 rounded px-3 py-2 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+           hx-get="/aliases"
+           hx-trigger="keyup changed delay:300ms"
+           hx-target="#alias-table-body"
+           hx-include="[name='hide_suspended'],[name='hide_enabled']"
+           hx-swap="innerHTML">
+
+    <label class="flex items-center gap-1.5 text-sm text-gray-600">
+        <input type="checkbox"
+               name="hide_suspended"
+               value="true"
+               {% if hide_suspended %}checked{% endif %}
+               class="rounded border-gray-300"
+               hx-get="/aliases"
+               hx-trigger="change"
+               hx-target="#alias-table-body"
+               hx-include="[name='q'],[name='hide_enabled']"
+               hx-swap="innerHTML">
+        Hide Suspended
+    </label>
+
+    <label class="flex items-center gap-1.5 text-sm text-gray-600">
+        <input type="checkbox"
+               name="hide_enabled"
+               value="true"
+               {% if hide_enabled %}checked{% endif %}
+               class="rounded border-gray-300"
+               hx-get="/aliases"
+               hx-trigger="change"
+               hx-target="#alias-table-body"
+               hx-include="[name='q'],[name='hide_suspended']"
+               hx-swap="innerHTML">
+        Hide Enabled
+    </label>
+
+    <button class="text-sm text-blue-600 hover:text-blue-800 underline"
+            hx-post="/refresh"
+            hx-target="#alias-table-body"
+            hx-include="[name='q'],[name='hide_suspended'],[name='hide_enabled']"
+            hx-swap="innerHTML">
+        Refresh
+    </button>
+
+    <span class="text-sm text-gray-500 ml-auto" id="alias-count">
+        {{ alias_count }} alias{% if alias_count != 1 %}es{% endif %}
+    </span>
+</div>

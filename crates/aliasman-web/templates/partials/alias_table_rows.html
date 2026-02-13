@@ -1,0 +1,22 @@
+{% for alias in aliases %}
+<tr class="{% if alias.suspended %}bg-red-50 text-gray-400{% else %}hover:bg-gray-50{% endif %}">
+    <td class="px-4 py-2 text-sm font-mono">{{ alias.alias }}</td>
+    <td class="px-4 py-2 text-sm">{{ alias.domain }}</td>
+    <td class="px-4 py-2 text-sm">{{ alias.email_addresses }}</td>
+    <td class="px-4 py-2 text-sm">{{ alias.description }}</td>
+    <td class="px-4 py-2 text-sm">
+        {% if alias.suspended %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Suspended</span>
+        {% else %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Active</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-2 text-sm text-gray-500">{{ alias.created_at }}</td>
+    <td class="px-4 py-2 text-sm text-gray-500">{{ alias.modified_at }}</td>
+</tr>
+{% endfor %}
+{% if aliases.is_empty() %}
+<tr>
+    <td colspan="7" class="px-4 py-8 text-center text-gray-500">No aliases found.</td>
+</tr>
+{% endif %}

@@ -1,23 +1,17 @@
 mod error;
+mod routes;
+mod state;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
-use axum::extract::Path;
-use axum::http::{header, StatusCode};
-use axum::response::IntoResponse;
-use axum::routing::get;
-use axum::Router;
 use clap::Parser;
-use rust_embed::Embed;
 use tracing_subscriber::EnvFilter;
 
 use aliasman_core::config::AppConfig;
 
-#[derive(Embed)]
-#[folder = "static/"]
-struct StaticAssets;
+use crate::state::AppState;
 
 #[derive(Parser)]
 #[command(name = "aliasman-web", about = "Aliasman web frontend")]
@@ -39,12 +33,13 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    // Verify config loads (will be used in later steps)
-    let _config = AppConfig::load(&cli.config_dir).context("failed to load configuration")?;
+    let config = AppConfig::load(&cli.config_dir).context("failed to load configuration")?;
 
-    let app = Router::new()
-        .route("/health", get(health_handler))
-        .route("/static/{*path}", get(static_handler));
+    let state = AppState::new(config)
+        .await
+        .context("failed to initialize application state")?;
+
+    let app = routes::router(state.clone());
 
     tracing::info!("Starting aliasman-web on {}", cli.bind);
     let listener = tokio::net::TcpListener::bind(cli.bind).await?;
@@ -52,30 +47,9 @@ async fn main() -> Result<()> {
         .with_graceful_shutdown(shutdown_signal())
         .await?;
 
+    state.shutdown().await;
     tracing::info!("Server stopped");
     Ok(())
-}
-
-async fn health_handler() -> &'static str {
-    "ok"
-}
-
-async fn static_handler(Path(path): Path<String>) -> impl IntoResponse {
-    match StaticAssets::get(&path) {
-        Some(content) => {
-            let mime = mime_guess::from_path(&path).first_or_octet_stream();
-            (
-                StatusCode::OK,
-                [
-                    (header::CONTENT_TYPE, mime.as_ref().to_string()),
-                    (header::CACHE_CONTROL, "public, max-age=31536000".to_string()),
-                ],
-                content.data.into_owned(),
-            )
-                .into_response()
-        }
-        None => StatusCode::NOT_FOUND.into_response(),
-    }
 }
 
 async fn shutdown_signal() {

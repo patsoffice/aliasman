@@ -1,0 +1,91 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+
+use aliasman_core::config::AppConfig;
+use aliasman_core::create_storage_provider;
+use aliasman_core::error::Result as CoreResult;
+use aliasman_core::model::{Alias, AliasFilter};
+use aliasman_core::storage::StorageProvider;
+
+pub type SharedState = Arc<AppState>;
+
+pub struct AppState {
+    config: AppConfig,
+    systems: RwLock<HashMap<String, Box<dyn StorageProvider>>>,
+    active_system: RwLock<String>,
+}
+
+impl AppState {
+    pub async fn new(config: AppConfig) -> CoreResult<SharedState> {
+        let default_system = config.default_system.clone();
+        let system_config = config.system(Some(&default_system))?;
+
+        let mut storage = create_storage_provider(&system_config.storage);
+        storage.open(true).await?;
+
+        let mut systems = HashMap::new();
+        systems.insert(default_system.clone(), storage);
+
+        Ok(Arc::new(Self {
+            config,
+            systems: RwLock::new(systems),
+            active_system: RwLock::new(default_system),
+        }))
+    }
+
+    pub async fn active_system_name(&self) -> String {
+        self.active_system.read().await.clone()
+    }
+
+    pub fn system_names(&self) -> Vec<String> {
+        let mut names: Vec<String> = self.config.systems.keys().cloned().collect();
+        names.sort();
+        names
+    }
+
+    pub async fn list_aliases(&self, filter: &AliasFilter) -> CoreResult<Vec<Alias>> {
+        let active = self.active_system.read().await.clone();
+        let systems = self.systems.read().await;
+        let storage = systems.get(&active).ok_or_else(|| {
+            aliasman_core::error::Error::Config(format!(
+                "active system '{}' not found",
+                active
+            ))
+        })?;
+        aliasman_core::list_aliases(storage.as_ref(), filter).await
+    }
+
+    pub async fn switch_system(&self, name: &str) -> CoreResult<()> {
+        let system_config = self.config.system(Some(name))?;
+
+        let mut systems = self.systems.write().await;
+        if !systems.contains_key(name) {
+            let mut storage = create_storage_provider(&system_config.storage);
+            storage.open(true).await?;
+            systems.insert(name.to_string(), storage);
+        }
+        drop(systems);
+
+        *self.active_system.write().await = name.to_string();
+        Ok(())
+    }
+
+    pub async fn refresh_active_system(&self) -> CoreResult<()> {
+        let active = self.active_system.read().await.clone();
+        let mut systems = self.systems.write().await;
+        if let Some(storage) = systems.get_mut(&active) {
+            storage.refresh().await?;
+        }
+        Ok(())
+    }
+
+    pub async fn shutdown(&self) {
+        let mut systems = self.systems.write().await;
+        for (name, storage) in systems.iter_mut() {
+            if let Err(e) = storage.close().await {
+                tracing::error!("Failed to close storage for system '{}': {}", name, e);
+            }
+        }
+    }
+}
