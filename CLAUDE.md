@@ -47,7 +47,6 @@ cargo run --package aliasman-web                                # Run the web fr
 
 ## Gotchas
 
-- `rackspace_email::RackspaceClient::new()` takes owned `String`s, not `&str`
 - SQLite tests use `":memory:"` as the path — never use real file paths in tests
 - `create_storage_provider_legacy()` exists only for Go-format S3 migration — don't use it for new code
 - `alias_matches()` intentionally ignores `modified_at` — this is by design for storage conversion diffing

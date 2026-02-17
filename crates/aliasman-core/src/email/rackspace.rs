@@ -63,13 +63,8 @@ pub struct RackspaceEmailProvider {
 impl RackspaceEmailProvider {
     /// Creates a new `RackspaceEmailProvider` with the given credentials.
     pub fn new(user_key: &str, secret_key: &str) -> Result<Self> {
-        let client = rackspace_email::RackspaceClient::new(
-            user_key.to_string(),
-            secret_key.to_string(),
-            None,
-            None,
-        )
-        .map_err(|e| Error::Email(Box::new(e)))?;
+        let client = rackspace_email::RackspaceClient::new(user_key, secret_key, None, None)
+            .map_err(|e| Error::Email(Box::new(e)))?;
         Ok(Self {
             client: Box::new(client),
         })
@@ -138,9 +133,11 @@ mod tests {
     use super::*;
     use std::sync::{Arc, Mutex};
 
+    type CreateCallLog = Arc<Mutex<Vec<(String, String, Vec<String>)>>>;
+
     struct MockRackspaceClient {
         // Stores (domain, alias, email_list) for verification
-        create_calls: Arc<Mutex<Vec<(String, String, Vec<String>)>>>,
+        create_calls: CreateCallLog,
     }
 
     #[async_trait]

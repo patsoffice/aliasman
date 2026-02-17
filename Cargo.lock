@@ -2612,8 +2612,8 @@ checksum = "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f"
 
 [[package]]
 name = "rackspace-email"
-version = "0.1.0"
-source = "git+https://github.com/patsoffice/rackspace-email-rs#7965ee2fcf92eb1282fcbc9cc2e05ece2bf22682"
+version = "0.2.0"
+source = "git+https://github.com/patsoffice/rackspace-email-rs#e3eae715d8b76df83c3fd64aec1edec885ced945"
 dependencies = [
  "base64 0.21.7",
  "chrono",
