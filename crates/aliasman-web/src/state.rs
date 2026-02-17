@@ -48,10 +48,7 @@ impl AppState {
         let active = self.active_system.read().await.clone();
         let systems = self.systems.read().await;
         let storage = systems.get(&active).ok_or_else(|| {
-            aliasman_core::error::Error::Config(format!(
-                "active system '{}' not found",
-                active
-            ))
+            aliasman_core::error::Error::Config(format!("active system '{}' not found", active))
         })?;
         aliasman_core::list_aliases(storage.as_ref(), filter).await
     }

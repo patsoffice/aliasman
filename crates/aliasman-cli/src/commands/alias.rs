@@ -1,10 +1,13 @@
 use anyhow::{bail, Context, Result};
 use clap::Subcommand;
+use regex::Regex;
 
 use aliasman_core::email::EmailProvider;
 use aliasman_core::model::{generate_random_alias, AliasFilter};
 use aliasman_core::storage::StorageProvider;
-use aliasman_core::{build_alias, create_alias, delete_alias, list_aliases};
+use aliasman_core::{
+    build_alias, create_alias, delete_alias, list_aliases, suspend_alias, unsuspend_alias,
+};
 
 use crate::output::print_alias_table;
 
@@ -50,6 +53,43 @@ pub enum AliasCommands {
 
     /// List all aliases
     List,
+
+    /// Suspend an email alias (stops email routing)
+    Suspend {
+        /// Alias name to suspend
+        #[arg(short, long)]
+        alias: String,
+
+        /// Domain of the alias
+        #[arg(short, long)]
+        domain: Option<String>,
+    },
+
+    /// Unsuspend an email alias (restarts email routing)
+    Unsuspend {
+        /// Alias name to unsuspend
+        #[arg(short, long)]
+        alias: String,
+
+        /// Domain of the alias
+        #[arg(short, long)]
+        domain: Option<String>,
+    },
+
+    /// Search for aliases via regular expressions
+    Search {
+        /// Regular expression for matching aliases (searches alias, domain, email addresses, and description)
+        #[arg(short, long)]
+        search_regexp: Option<String>,
+
+        /// Exclude suspended aliases from results
+        #[arg(short = 'e', long)]
+        exclude_suspended: bool,
+
+        /// Exclude enabled (non-suspended) aliases from results
+        #[arg(short = 'E', long)]
+        exclude_enabled: bool,
+    },
 }
 
 pub async fn handle(
@@ -120,6 +160,68 @@ pub async fn handle(
         AliasCommands::List => {
             storage.open(true).await?;
             let result = list_aliases(storage, &AliasFilter::default()).await;
+            let close_result = storage.close().await;
+            let aliases = result?;
+            close_result?;
+
+            if aliases.is_empty() {
+                println!("No aliases found.");
+            } else {
+                print_alias_table(&aliases);
+            }
+        }
+
+        AliasCommands::Suspend { alias, domain } => {
+            let domain = domain
+                .as_deref()
+                .or(default_domain)
+                .context("--domain is required (no default domain configured)")?;
+
+            storage.open(false).await?;
+            let result = suspend_alias(storage, email, alias, domain).await;
+            let close_result = storage.close().await;
+            result?;
+            close_result?;
+
+            println!("Suspended alias {}@{}", alias, domain);
+        }
+
+        AliasCommands::Unsuspend { alias, domain } => {
+            let domain = domain
+                .as_deref()
+                .or(default_domain)
+                .context("--domain is required (no default domain configured)")?;
+
+            storage.open(false).await?;
+            let result = unsuspend_alias(storage, email, alias, domain).await;
+            let close_result = storage.close().await;
+            result?;
+            close_result?;
+
+            println!("Unsuspended alias {}@{}", alias, domain);
+        }
+
+        AliasCommands::Search {
+            search_regexp,
+            exclude_suspended,
+            exclude_enabled,
+        } => {
+            let re = search_regexp
+                .as_deref()
+                .map(Regex::new)
+                .transpose()
+                .context("invalid --search-regexp regex")?;
+            let filter = AliasFilter {
+                alias: re.clone(),
+                domain: re.clone(),
+                email_address: re.clone(),
+                description: re,
+                exclude_suspended: *exclude_suspended,
+                exclude_enabled: *exclude_enabled,
+            };
+
+            storage.open(true).await?;
+            let result = list_aliases(storage, &filter).await;
             let close_result = storage.close().await;
             let aliases = result?;
             close_result?;

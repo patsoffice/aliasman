@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_alias_ordering() {
-        let mut aliases = vec![
+        let mut aliases = [
             Alias {
                 domain: "z.com".to_string(),
                 alias: "a".to_string(),

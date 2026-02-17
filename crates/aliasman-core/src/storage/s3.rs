@@ -265,13 +265,13 @@ impl S3Storage {
             .map(Region::new)
             .unwrap_or_else(|| Region::new("us-east-1"));
 
-        let mut config_builder = aws_sdk_s3::Config::builder().region(region);
+        let mut config_builder = aws_sdk_s3::Config::builder()
+            .behavior_version_latest()
+            .region(region);
 
         // Set endpoint if provided (for MinIO, LocalStack, etc.)
         if let Some(endpoint) = &self.endpoint {
-            config_builder = config_builder
-                .endpoint_url(endpoint)
-                .force_path_style(true);
+            config_builder = config_builder.endpoint_url(endpoint).force_path_style(true);
         }
 
         // Use static credentials if provided, otherwise use default credential chain

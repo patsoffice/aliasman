@@ -129,6 +129,74 @@ pub async fn delete_alias(
     Ok(())
 }
 
+/// Suspend an alias: delete from email provider (stops routing), then mark suspended in storage.
+pub async fn suspend_alias(
+    storage: &dyn StorageProvider,
+    email: &dyn EmailProvider,
+    alias: &str,
+    domain: &str,
+) -> Result<()> {
+    let existing = storage.get(alias, domain).await?;
+    match existing {
+        None => {
+            return Err(Error::AliasNotFound {
+                alias: alias.to_string(),
+                domain: domain.to_string(),
+            });
+        }
+        Some(a) if a.suspended => {
+            return Err(Error::InvalidInput(format!(
+                "alias '{}@{}' is already suspended",
+                alias, domain
+            )));
+        }
+        _ => {}
+    }
+
+    // Delete from email provider first (stops mail routing)
+    email.alias_delete(alias, domain).await?;
+
+    // Then mark as suspended in storage
+    storage.suspend(alias, domain).await?;
+
+    Ok(())
+}
+
+/// Unsuspend an alias: re-create on email provider (restarts routing), then mark unsuspended in storage.
+pub async fn unsuspend_alias(
+    storage: &dyn StorageProvider,
+    email: &dyn EmailProvider,
+    alias: &str,
+    domain: &str,
+) -> Result<()> {
+    let existing = storage.get(alias, domain).await?;
+    let existing = match existing {
+        None => {
+            return Err(Error::AliasNotFound {
+                alias: alias.to_string(),
+                domain: domain.to_string(),
+            });
+        }
+        Some(a) if !a.suspended => {
+            return Err(Error::InvalidInput(format!(
+                "alias '{}@{}' is not suspended",
+                alias, domain
+            )));
+        }
+        Some(a) => a,
+    };
+
+    // Re-create on email provider (restarts mail routing)
+    email
+        .alias_create(alias, domain, &existing.email_addresses)
+        .await?;
+
+    // Then mark as unsuspended in storage
+    storage.unsuspend(alias, domain).await?;
+
+    Ok(())
+}
+
 /// List all aliases from storage, optionally filtered.
 pub async fn list_aliases(
     storage: &dyn StorageProvider,

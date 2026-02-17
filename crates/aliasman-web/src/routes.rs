@@ -1,9 +1,9 @@
+use askama::Template;
 use axum::extract::{Path, Query, State};
 use axum::http::{header, StatusCode};
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, post};
 use axum::{Form, Router};
-use askama::Template;
 use rust_embed::Embed;
 use serde::Deserialize;
 
@@ -220,7 +220,10 @@ async fn static_handler(Path(path): Path<String>) -> impl IntoResponse {
                 StatusCode::OK,
                 [
                     (header::CONTENT_TYPE, mime.as_ref().to_string()),
-                    (header::CACHE_CONTROL, "public, max-age=31536000".to_string()),
+                    (
+                        header::CACHE_CONTROL,
+                        "public, max-age=31536000".to_string(),
+                    ),
                 ],
                 content.data.into_owned(),
             )
