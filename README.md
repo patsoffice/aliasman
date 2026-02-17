@@ -231,6 +231,34 @@ Delete an alias:
 aliasman alias delete -a 5f888d1272833b09 -d example.com
 ```
 
+Suspend an alias (stops email routing but preserves metadata):
+
+```sh
+aliasman alias suspend -a 5f888d1272833b09 -d example.com
+```
+
+Unsuspend an alias (restarts email routing):
+
+```sh
+aliasman alias unsuspend -a 5f888d1272833b09 -d example.com
+```
+
+Search aliases with a regular expression (matches against alias, domain, email addresses,
+and description):
+
+```sh
+aliasman alias search -s "shopping"
+
+# Show only suspended aliases
+aliasman alias search --exclude-enabled
+
+# Show only active aliases
+aliasman alias search --exclude-suspended
+
+# Combine a search pattern with a filter
+aliasman alias search -s "example\\.com" --exclude-suspended
+```
+
 Use a specific system:
 
 ```sh
@@ -320,7 +348,7 @@ Use `--legacy-source` flag when converting from the old format.
 
 ## Planned Features
 
-- **Additional CLI commands** — suspend, unsuspend, search, audit, sync, sync-from-email, update-description
+- **Additional CLI commands** — audit, sync, sync-from-email, update-description
 - **Additional providers** — files storage, Google Workspace email
 - **Web frontend mutations** — create, delete, suspend, unsuspend aliases from the web UI
 - **Web authentication** — Login flow with RBAC (role-based access control) for multi-user deployments
