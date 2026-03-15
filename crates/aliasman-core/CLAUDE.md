@@ -24,6 +24,21 @@ Core library crate — all domain logic, data models, traits, and provider imple
 2. Add a variant to `EmailConfig` in `config.rs` with `#[serde(rename = "<name>")]`
 3. Add a match arm in `create_email_provider()` in `lib.rs`
 
+## Schema Changes
+
+### SQLite
+
+- Schema is versioned via `PRAGMA user_version` — see `SCHEMA_VERSION` in `storage/sqlite.rs`
+- To add a migration: increment `SCHEMA_VERSION`, add a `migrate_vN_to_vN+1()` function, add a match arm in `SqliteStorage::migrate()`
+- Migrations run sequentially on `open()` when the DB version is behind
+
+### S3
+
+- S3 uses JSON serialization (`S3Alias` struct) — no rigid schema
+- All fields on `S3Alias` must use `#[serde(default)]` so existing objects without new fields still deserialize
+- DateTime fields use `#[serde(default = "default_datetime")]` (returns epoch)
+- Old objects are lazily migrated when rewritten via `put`/`update`
+
 ## Tests
 
 - `cargo test -p aliasman-core`

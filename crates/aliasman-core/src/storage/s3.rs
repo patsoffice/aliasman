@@ -12,21 +12,32 @@ use crate::error::{Error, Result};
 use crate::model::{Alias, AliasFilter};
 use crate::storage::StorageProvider;
 
-/// New Rust-native S3 format - JSON body with proper nulls and Rust field naming
+/// New Rust-native S3 format - JSON body with proper nulls and Rust field naming.
+///
+/// When adding new fields, always use `#[serde(default)]` so that existing S3
+/// objects (which lack the field) still deserialize correctly.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct S3Alias {
+    #[serde(default)]
     alias: String,
+    #[serde(default)]
     domain: String,
-    #[serde(rename = "email_addresses")]
+    #[serde(default, rename = "email_addresses")]
     email_addresses: Vec<String>,
+    #[serde(default)]
     description: String,
+    #[serde(default)]
     suspended: bool,
-    #[serde(with = "rfc3339_secs")]
+    #[serde(default = "default_datetime", with = "rfc3339_secs")]
     created_at: DateTime<Utc>,
-    #[serde(with = "rfc3339_secs")]
+    #[serde(default = "default_datetime", with = "rfc3339_secs")]
     modified_at: DateTime<Utc>,
-    #[serde(with = "rfc3339_secs_option")]
+    #[serde(default, with = "rfc3339_secs_option")]
     suspended_at: Option<DateTime<Utc>>,
+}
+
+fn default_datetime() -> DateTime<Utc> {
+    DateTime::UNIX_EPOCH
 }
 
 impl S3Alias {

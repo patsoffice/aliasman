@@ -1,1 +1,23 @@
+# Build
 /target
+
+# AI
+.claude/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+
+# Cargo lock is committed for binaries, but ignore debug artifacts
+**/*.rs.bk
