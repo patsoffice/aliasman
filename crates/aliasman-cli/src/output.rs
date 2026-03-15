@@ -9,7 +9,6 @@ pub fn print_alias_table(aliases: &[Alias]) {
         .set_header(vec![
             "#",
             "Alias",
-            "Domain",
             "Email Address(es)",
             "Description",
             "Suspended",
@@ -26,8 +25,7 @@ pub fn print_alias_table(aliases: &[Alias]) {
 
         table.add_row(vec![
             (i + 1).to_string(),
-            alias.alias.clone(),
-            alias.domain.clone(),
+            alias.full_alias(),
             alias.email_addresses.join(", "),
             alias.description.clone(),
             if alias.suspended { "Yes" } else { "No" }.to_string(),

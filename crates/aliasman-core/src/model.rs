@@ -23,6 +23,11 @@ impl Alias {
         format!("{}@{}", self.alias, self.domain)
     }
 
+    /// Returns "alias@domain" for display purposes.
+    pub fn full_alias(&self) -> String {
+        self.key()
+    }
+
     /// Returns true if this alias matches the given filter.
     pub fn matches(&self, filter: &AliasFilter) -> bool {
         if filter.exclude_suspended && self.suspended {

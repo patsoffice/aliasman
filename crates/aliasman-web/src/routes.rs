@@ -21,8 +21,7 @@ struct StaticAssets;
 // -- View Models --
 
 pub struct AliasView {
-    pub alias: String,
-    pub domain: String,
+    pub full_alias: String,
     pub email_addresses: String,
     pub description: String,
     pub suspended: bool,
@@ -38,8 +37,7 @@ pub struct SystemOption {
 impl From<Alias> for AliasView {
     fn from(a: Alias) -> Self {
         Self {
-            alias: a.alias,
-            domain: a.domain,
+            full_alias: a.full_alias(),
             email_addresses: a.email_addresses.join(", "),
             description: a.description,
             suspended: a.suspended,
