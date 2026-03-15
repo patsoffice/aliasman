@@ -7,8 +7,8 @@ use axum::{Form, Router};
 use rust_embed::Embed;
 use serde::Deserialize;
 
-use aliasman_core::model::{Alias, AliasFilter};
 use aliasman_core::build_alias;
+use aliasman_core::model::{Alias, AliasFilter};
 
 use crate::error::AppError;
 use crate::state::SharedState;
@@ -160,8 +160,14 @@ pub fn router(state: SharedState) -> Router {
     Router::new()
         .route("/", get(index_handler))
         .route("/aliases", get(aliases_handler))
-        .route("/aliases/create", get(create_form_handler).post(create_alias_handler))
-        .route("/aliases/edit", get(edit_form_handler).post(edit_alias_handler))
+        .route(
+            "/aliases/create",
+            get(create_form_handler).post(create_alias_handler),
+        )
+        .route(
+            "/aliases/edit",
+            get(edit_form_handler).post(edit_alias_handler),
+        )
         .route("/aliases/delete", post(delete_alias_handler))
         .route("/aliases/suspend", post(suspend_alias_handler))
         .route("/aliases/unsuspend", post(unsuspend_alias_handler))
@@ -275,9 +281,7 @@ async fn refresh_handler(
     })?))
 }
 
-async fn create_form_handler(
-    State(state): State<SharedState>,
-) -> Result<Html<String>, AppError> {
+async fn create_form_handler(State(state): State<SharedState>) -> Result<Html<String>, AppError> {
     let default_domain = state.active_default_domain().await.unwrap_or_default();
     let default_addresses = state
         .active_default_addresses()
@@ -319,16 +323,15 @@ async fn create_alias_handler(
     };
 
     let template = CreateResultTemplate { success, message };
-    let html = template.render().map_err(|e| {
-        AppError::Internal(format!("template render error: {}", e))
-    })?;
+    let html = template
+        .render()
+        .map_err(|e| AppError::Internal(format!("template render error: {}", e)))?;
 
     let mut response = Html(html).into_response();
     if success {
-        response.headers_mut().insert(
-            "HX-Trigger",
-            "alias-changed".parse().unwrap(),
-        );
+        response
+            .headers_mut()
+            .insert("HX-Trigger", "alias-changed".parse().unwrap());
     }
     Ok(response)
 }
@@ -424,16 +427,15 @@ fn alias_action_response(
     };
 
     let template = ActionResultTemplate { success, message };
-    let html = template.render().map_err(|e| {
-        AppError::Internal(format!("template render error: {}", e))
-    })?;
+    let html = template
+        .render()
+        .map_err(|e| AppError::Internal(format!("template render error: {}", e)))?;
 
     let mut response = Html(html).into_response();
     if success {
-        response.headers_mut().insert(
-            "HX-Trigger",
-            "alias-changed".parse().unwrap(),
-        );
+        response
+            .headers_mut()
+            .insert("HX-Trigger", "alias-changed".parse().unwrap());
     }
     Ok(response)
 }

@@ -209,16 +209,19 @@ pub async fn handle(
                     );
                 }
                 if let Some(ref desc) = description {
-                    println!(
-                        "  description: {:?} -> {:?}",
-                        existing.description, desc
-                    );
+                    println!("  description: {:?} -> {:?}", existing.description, desc);
                 }
             } else {
                 storage.open(false).await?;
-                let result =
-                    edit_alias(storage, email, alias, domain, new_addresses, description.clone())
-                        .await;
+                let result = edit_alias(
+                    storage,
+                    email,
+                    alias,
+                    domain,
+                    new_addresses,
+                    description.clone(),
+                )
+                .await;
                 let close_result = storage.close().await;
                 let updated = result?;
                 close_result?;

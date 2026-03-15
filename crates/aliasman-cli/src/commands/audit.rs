@@ -29,9 +29,7 @@ pub async fn handle(
 
     for diff in &result.diffs {
         match diff {
-            AuditDiff::StorageOnly {
-                alias, domain, ..
-            } => {
+            AuditDiff::StorageOnly { alias, domain, .. } => {
                 println!("  MISSING FROM EMAIL  {}@{}", alias, domain);
                 println!("    Active in storage but not found on email provider");
             }

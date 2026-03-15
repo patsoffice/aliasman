@@ -118,10 +118,13 @@ pub async fn edit_alias(
     new_addresses: Option<Vec<String>>,
     new_description: Option<String>,
 ) -> Result<Alias> {
-    let mut existing = storage.get(alias, domain).await?.ok_or_else(|| Error::AliasNotFound {
-        alias: alias.to_string(),
-        domain: domain.to_string(),
-    })?;
+    let mut existing = storage
+        .get(alias, domain)
+        .await?
+        .ok_or_else(|| Error::AliasNotFound {
+            alias: alias.to_string(),
+            domain: domain.to_string(),
+        })?;
 
     let addresses_changed = new_addresses
         .as_ref()

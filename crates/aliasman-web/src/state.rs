@@ -3,10 +3,10 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use aliasman_core::config::AppConfig;
-use aliasman_core::{create_email_provider, create_storage_provider};
 use aliasman_core::error::Result as CoreResult;
 use aliasman_core::model::{Alias, AliasFilter};
 use aliasman_core::storage::StorageProvider;
+use aliasman_core::{create_email_provider, create_storage_provider};
 
 pub type SharedState = Arc<AppState>;
 
