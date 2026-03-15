@@ -22,7 +22,7 @@ impl AppState {
         let system_config = config.system(Some(&default_system))?;
 
         let mut storage = create_storage_provider(&system_config.storage);
-        storage.open(true).await?;
+        storage.open(false).await?;
 
         let mut systems = HashMap::new();
         systems.insert(default_system.clone(), storage);
@@ -75,6 +75,45 @@ impl AppState {
         aliasman_core::create_alias(storage.as_ref(), email.as_ref(), alias).await
     }
 
+    /// Delete an alias from the active system (dual-write: email provider first, then storage).
+    pub async fn delete_alias(&self, alias: &str, domain: &str) -> CoreResult<()> {
+        let active = self.active_system.read().await.clone();
+        let system_config = self.config.system(Some(&active))?;
+        let email = create_email_provider(&system_config.email)?;
+
+        let systems = self.systems.read().await;
+        let storage = systems.get(&active).ok_or_else(|| {
+            aliasman_core::error::Error::Config(format!("active system '{}' not found", active))
+        })?;
+        aliasman_core::delete_alias(storage.as_ref(), email.as_ref(), alias, domain).await
+    }
+
+    /// Suspend an alias on the active system.
+    pub async fn suspend_alias(&self, alias: &str, domain: &str) -> CoreResult<()> {
+        let active = self.active_system.read().await.clone();
+        let system_config = self.config.system(Some(&active))?;
+        let email = create_email_provider(&system_config.email)?;
+
+        let systems = self.systems.read().await;
+        let storage = systems.get(&active).ok_or_else(|| {
+            aliasman_core::error::Error::Config(format!("active system '{}' not found", active))
+        })?;
+        aliasman_core::suspend_alias(storage.as_ref(), email.as_ref(), alias, domain).await
+    }
+
+    /// Unsuspend an alias on the active system.
+    pub async fn unsuspend_alias(&self, alias: &str, domain: &str) -> CoreResult<()> {
+        let active = self.active_system.read().await.clone();
+        let system_config = self.config.system(Some(&active))?;
+        let email = create_email_provider(&system_config.email)?;
+
+        let systems = self.systems.read().await;
+        let storage = systems.get(&active).ok_or_else(|| {
+            aliasman_core::error::Error::Config(format!("active system '{}' not found", active))
+        })?;
+        aliasman_core::unsuspend_alias(storage.as_ref(), email.as_ref(), alias, domain).await
+    }
+
     pub async fn list_aliases(&self, filter: &AliasFilter) -> CoreResult<Vec<Alias>> {
         let active = self.active_system.read().await.clone();
         let systems = self.systems.read().await;
@@ -90,7 +129,7 @@ impl AppState {
         let mut systems = self.systems.write().await;
         if !systems.contains_key(name) {
             let mut storage = create_storage_provider(&system_config.storage);
-            storage.open(true).await?;
+            storage.open(false).await?;
             systems.insert(name.to_string(), storage);
         }
         drop(systems);

@@ -12,10 +12,33 @@
     </td>
     <td class="px-4 py-2 text-sm text-gray-500">{{ alias.created_at }}</td>
     <td class="px-4 py-2 text-sm text-gray-500">{{ alias.modified_at }}</td>
+    <td class="px-4 py-2 text-sm whitespace-nowrap">
+        <div class="flex gap-1">
+            {% if alias.suspended %}
+            <form hx-post="/aliases/unsuspend" hx-target="#action-result" hx-swap="innerHTML">
+                <input type="hidden" name="alias" value="{{ alias.alias }}">
+                <input type="hidden" name="domain" value="{{ alias.domain }}">
+                <button type="submit" class="text-xs text-green-600 hover:text-green-800 underline">Unsuspend</button>
+            </form>
+            {% else %}
+            <form hx-post="/aliases/suspend" hx-target="#action-result" hx-swap="innerHTML">
+                <input type="hidden" name="alias" value="{{ alias.alias }}">
+                <input type="hidden" name="domain" value="{{ alias.domain }}">
+                <button type="submit" class="text-xs text-yellow-600 hover:text-yellow-800 underline">Suspend</button>
+            </form>
+            {% endif %}
+            <form hx-post="/aliases/delete" hx-target="#action-result" hx-swap="innerHTML"
+                  hx-confirm="Delete alias {{ alias.full_alias }}?">
+                <input type="hidden" name="alias" value="{{ alias.alias }}">
+                <input type="hidden" name="domain" value="{{ alias.domain }}">
+                <button type="submit" class="text-xs text-red-600 hover:text-red-800 underline">Delete</button>
+            </form>
+        </div>
+    </td>
 </tr>
 {% endfor %}
 {% if aliases.is_empty() %}
 <tr>
-    <td colspan="6" class="px-4 py-8 text-center text-gray-500">No aliases found.</td>
+    <td colspan="7" class="px-4 py-8 text-center text-gray-500">No aliases found.</td>
 </tr>
 {% endif %}

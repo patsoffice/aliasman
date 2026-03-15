@@ -39,7 +39,7 @@
     </label>
 
     <button class="text-sm text-blue-600 hover:text-blue-800 underline"
-            hx-post="/refresh"
+            hx-get="/refresh"
             hx-target="#alias-table-body"
             hx-include="[name='q'],[name='hide_suspended'],[name='hide_enabled']"
             hx-swap="innerHTML">
@@ -58,3 +58,4 @@
     </span>
 </div>
 <div id="create-form-container"></div>
+<div id="action-result"></div>

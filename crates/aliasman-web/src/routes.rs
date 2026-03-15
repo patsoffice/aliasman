@@ -22,6 +22,8 @@ struct StaticAssets;
 // -- View Models --
 
 pub struct AliasView {
+    pub alias: String,
+    pub domain: String,
     pub full_alias: String,
     pub email_addresses: String,
     pub description: String,
@@ -37,8 +39,11 @@ pub struct SystemOption {
 
 impl From<Alias> for AliasView {
     fn from(a: Alias) -> Self {
+        let full_alias = a.full_alias();
         Self {
-            full_alias: a.full_alias(),
+            alias: a.alias,
+            domain: a.domain,
+            full_alias,
             email_addresses: a.email_addresses.join(", "),
             description: a.description,
             suspended: a.suspended,
@@ -63,6 +68,12 @@ pub struct AliasQuery {
 #[derive(Debug, Deserialize)]
 pub struct SystemForm {
     pub system: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AliasActionForm {
+    pub alias: String,
+    pub domain: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -118,6 +129,13 @@ struct CreateResultTemplate {
     message: String,
 }
 
+#[derive(Template)]
+#[template(path = "partials/action_result.html")]
+struct ActionResultTemplate {
+    success: bool,
+    message: String,
+}
+
 // -- Router --
 
 pub fn router(state: SharedState) -> Router {
@@ -125,8 +143,11 @@ pub fn router(state: SharedState) -> Router {
         .route("/", get(index_handler))
         .route("/aliases", get(aliases_handler))
         .route("/aliases/create", get(create_form_handler).post(create_alias_handler))
+        .route("/aliases/delete", post(delete_alias_handler))
+        .route("/aliases/suspend", post(suspend_alias_handler))
+        .route("/aliases/unsuspend", post(unsuspend_alias_handler))
         .route("/system", post(system_handler))
-        .route("/refresh", post(refresh_handler))
+        .route("/refresh", get(refresh_handler))
         .route("/static/{*path}", get(static_handler))
         .route("/health", get(health_handler))
         .with_state(state)
@@ -287,7 +308,61 @@ async fn create_alias_handler(
     if success {
         response.headers_mut().insert(
             "HX-Trigger",
-            "alias-created".parse().unwrap(),
+            "alias-changed".parse().unwrap(),
+        );
+    }
+    Ok(response)
+}
+
+async fn delete_alias_handler(
+    State(state): State<SharedState>,
+    Form(form): Form<AliasActionForm>,
+) -> Result<impl IntoResponse, AppError> {
+    alias_action_response(
+        state.delete_alias(&form.alias, &form.domain).await,
+        format!("Deleted alias {}@{}", form.alias, form.domain),
+    )
+}
+
+async fn suspend_alias_handler(
+    State(state): State<SharedState>,
+    Form(form): Form<AliasActionForm>,
+) -> Result<impl IntoResponse, AppError> {
+    alias_action_response(
+        state.suspend_alias(&form.alias, &form.domain).await,
+        format!("Suspended alias {}@{}", form.alias, form.domain),
+    )
+}
+
+async fn unsuspend_alias_handler(
+    State(state): State<SharedState>,
+    Form(form): Form<AliasActionForm>,
+) -> Result<impl IntoResponse, AppError> {
+    alias_action_response(
+        state.unsuspend_alias(&form.alias, &form.domain).await,
+        format!("Unsuspended alias {}@{}", form.alias, form.domain),
+    )
+}
+
+fn alias_action_response(
+    result: aliasman_core::error::Result<()>,
+    success_message: String,
+) -> Result<axum::response::Response, AppError> {
+    let (success, message) = match result {
+        Ok(()) => (true, success_message),
+        Err(e) => (false, format!("{}", e)),
+    };
+
+    let template = ActionResultTemplate { success, message };
+    let html = template.render().map_err(|e| {
+        AppError::Internal(format!("template render error: {}", e))
+    })?;
+
+    let mut response = Html(html).into_response();
+    if success {
+        response.headers_mut().insert(
+            "HX-Trigger",
+            "alias-changed".parse().unwrap(),
         );
     }
     Ok(response)
