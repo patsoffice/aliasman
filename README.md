@@ -123,6 +123,46 @@ pub trait EmailProvider: Send + Sync {
 
 ## Installing
 
+### Pre-built Binaries
+
+Download the latest CLI binary from [GitHub Releases](../../releases/latest):
+
+- `aliasman-x86_64-linux.tar.gz` — x86_64 Linux
+- `aliasman-aarch64-macos.tar.gz` — Apple Silicon macOS
+
+```sh
+tar -xzf aliasman-*.tar.gz
+sudo mv aliasman /usr/local/bin/
+```
+
+### Docker
+
+The Docker image includes both the CLI and web server. The web server starts by default:
+
+```sh
+docker run -p 3000:3000 \
+  -v ~/.config/aliasman:/root/.config/aliasman \
+  ghcr.io/patsoffice/aliasman:latest
+```
+
+To run CLI commands inside the container:
+
+```sh
+docker run --rm \
+  -v ~/.config/aliasman:/root/.config/aliasman \
+  ghcr.io/patsoffice/aliasman:latest \
+  aliasman alias list
+```
+
+Override the entrypoint to use the CLI directly:
+
+```sh
+docker run --rm --entrypoint aliasman \
+  -v ~/.config/aliasman:/root/.config/aliasman \
+  ghcr.io/patsoffice/aliasman:latest \
+  alias list
+```
+
 ### From Source
 
 ```sh
@@ -396,6 +436,20 @@ The original Go implementation stored aliases differently:
 - **Go zero time**: `"0001-01-01T00:00:00Z"` represents unset timestamps
 
 Use `--legacy-source` flag when converting from the old format.
+
+## CI/CD
+
+GitHub Actions workflows handle continuous integration and releases:
+
+- **CI** (`ci.yml`) — Runs `cargo fmt --check`, `cargo clippy`, and `cargo test` on every push and pull request to `master`
+- **Release** (`release.yml`) — Triggered by version tags (`v*`). Builds and pushes a Docker image to GHCR, and attaches CLI binaries for x86_64 Linux and aarch64 macOS to the GitHub release
+
+To create a release:
+
+```sh
+git tag v0.1.0
+git push --tags
+```
 
 ## Planned Features
 
