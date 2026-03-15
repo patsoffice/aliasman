@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use aliasman_core::config::AppConfig;
-use aliasman_core::create_storage_provider;
+use aliasman_core::{create_email_provider, create_storage_provider};
 use aliasman_core::error::Result as CoreResult;
 use aliasman_core::model::{Alias, AliasFilter};
 use aliasman_core::storage::StorageProvider;
@@ -42,6 +42,37 @@ impl AppState {
         let mut names: Vec<String> = self.config.systems.keys().cloned().collect();
         names.sort();
         names
+    }
+
+    /// Get the active system's default domain from config.
+    pub async fn active_default_domain(&self) -> Option<String> {
+        let active = self.active_system.read().await.clone();
+        self.config
+            .system(Some(&active))
+            .ok()
+            .and_then(|s| s.domain.clone())
+    }
+
+    /// Get the active system's default email addresses from config.
+    pub async fn active_default_addresses(&self) -> Option<Vec<String>> {
+        let active = self.active_system.read().await.clone();
+        self.config
+            .system(Some(&active))
+            .ok()
+            .and_then(|s| s.email_addresses.clone())
+    }
+
+    /// Create an alias on the active system (dual-write: email provider first, then storage).
+    pub async fn create_alias(&self, alias: Alias) -> CoreResult<Alias> {
+        let active = self.active_system.read().await.clone();
+        let system_config = self.config.system(Some(&active))?;
+        let email = create_email_provider(&system_config.email)?;
+
+        let systems = self.systems.read().await;
+        let storage = systems.get(&active).ok_or_else(|| {
+            aliasman_core::error::Error::Config(format!("active system '{}' not found", active))
+        })?;
+        aliasman_core::create_alias(storage.as_ref(), email.as_ref(), alias).await
     }
 
     pub async fn list_aliases(&self, filter: &AliasFilter) -> CoreResult<Vec<Alias>> {

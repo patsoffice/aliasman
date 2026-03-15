@@ -8,6 +8,7 @@ use rust_embed::Embed;
 use serde::Deserialize;
 
 use aliasman_core::model::{Alias, AliasFilter};
+use aliasman_core::build_alias;
 
 use crate::error::AppError;
 use crate::state::SharedState;
@@ -64,6 +65,15 @@ pub struct SystemForm {
     pub system: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct CreateAliasForm {
+    pub alias: String,
+    pub domain: String,
+    pub email_addresses: String,
+    #[serde(default)]
+    pub description: String,
+}
+
 // -- Templates --
 
 #[derive(Template)]
@@ -94,12 +104,27 @@ struct MainContentTemplate {
     alias_count: usize,
 }
 
+#[derive(Template)]
+#[template(path = "partials/create_form.html")]
+struct CreateFormTemplate {
+    default_domain: String,
+    default_addresses: String,
+}
+
+#[derive(Template)]
+#[template(path = "partials/create_result.html")]
+struct CreateResultTemplate {
+    success: bool,
+    message: String,
+}
+
 // -- Router --
 
 pub fn router(state: SharedState) -> Router {
     Router::new()
         .route("/", get(index_handler))
         .route("/aliases", get(aliases_handler))
+        .route("/aliases/create", get(create_form_handler).post(create_alias_handler))
         .route("/system", post(system_handler))
         .route("/refresh", post(refresh_handler))
         .route("/static/{*path}", get(static_handler))
@@ -208,6 +233,64 @@ async fn refresh_handler(
     Ok(Html(template.render().map_err(|e| {
         AppError::Internal(format!("template render error: {}", e))
     })?))
+}
+
+async fn create_form_handler(
+    State(state): State<SharedState>,
+) -> Result<Html<String>, AppError> {
+    let default_domain = state.active_default_domain().await.unwrap_or_default();
+    let default_addresses = state
+        .active_default_addresses()
+        .await
+        .map(|a| a.join(", "))
+        .unwrap_or_default();
+
+    let template = CreateFormTemplate {
+        default_domain,
+        default_addresses,
+    };
+
+    Ok(Html(template.render().map_err(|e| {
+        AppError::Internal(format!("template render error: {}", e))
+    })?))
+}
+
+async fn create_alias_handler(
+    State(state): State<SharedState>,
+    Form(form): Form<CreateAliasForm>,
+) -> Result<impl IntoResponse, AppError> {
+    let addresses: Vec<String> = form
+        .email_addresses
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    let alias = build_alias(
+        form.alias.trim().to_string(),
+        form.domain.trim().to_string(),
+        addresses,
+        form.description.trim().to_string(),
+    );
+
+    let (success, message) = match state.create_alias(alias).await {
+        Ok(created) => (true, format!("Created alias {}", created.full_alias())),
+        Err(e) => (false, format!("{}", e)),
+    };
+
+    let template = CreateResultTemplate { success, message };
+    let html = template.render().map_err(|e| {
+        AppError::Internal(format!("template render error: {}", e))
+    })?;
+
+    let mut response = Html(html).into_response();
+    if success {
+        response.headers_mut().insert(
+            "HX-Trigger",
+            "alias-created".parse().unwrap(),
+        );
+    }
+    Ok(response)
 }
 
 async fn static_handler(Path(path): Path<String>) -> impl IntoResponse {
