@@ -32,6 +32,7 @@ cargo run --package aliasman-web                                # Run the web fr
 - Both binaries depend on `aliasman-core` for all domain logic
 - Core exposes two traits: `StorageProvider` and `EmailProvider`, implemented via enum dispatch
 - Mutations always dual-write: update the email provider first, then persist to storage
+- Aliases are displayed as `alias@domain` (via `Alias::full_alias()`) — alias and domain are separate in storage but combined for presentation
 - Fully async (tokio) — all I/O uses `async_trait`
 - Config: TOML at `~/.config/aliasman/config.toml`, loaded via the `config` crate with env var override (`ALIASMAN_` prefix)
 - Multi-system: each named system pairs one storage provider + one email provider
@@ -51,6 +52,10 @@ cargo run --package aliasman-web                                # Run the web fr
 - `create_storage_provider_legacy()` exists only for Go-format S3 migration — don't use it for new code
 - `alias_matches()` intentionally ignores `modified_at` — this is by design for storage conversion diffing
 - Web `AppState` wraps storage providers in `RwLock<HashMap>` — always use `AppState` methods, never lock manually
+- Web `AppState` opens storage read-write (`open(false)`) since the web UI supports mutations
 - `StorageProvider::open()` must be called before any queries — `open(true)` for read-only, `open(false)` for read-write
+- `edit_alias()` does delete+re-create on the email provider when addresses change (no `alias_update` on `EmailProvider`)
+- Web HTMX: use `hx-get` (not `hx-post`) when including form fields via `hx-include` so they're sent as query params
+- Web HTMX: use `hx-swap="innerHTML show:#target:top"` to scroll to swapped content
 - `StorageProvider::close()` must be called to flush writes (triggers S3 index upload)
 - The dual-write order matters: email provider first, then storage — if email fails, storage stays consistent

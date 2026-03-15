@@ -28,7 +28,7 @@ aliasman/
 │   │       ├── main.rs
 │   │       ├── commands/
 │   │       │   ├── mod.rs
-│   │       │   ├── alias.rs      # alias create/delete/list
+│   │       │   ├── alias.rs      # alias create/edit/delete/list/suspend/search
 │   │       │   ├── config.rs     # config command
 │   │       │   └── storage.rs    # storage convert command
 │   │       └── output.rs         # Table formatting (comfy-table)
@@ -48,7 +48,7 @@ aliasman/
 - **Fully async** — tokio runtime throughout, including storage. The rackspace-email crate is async and the future web frontend benefits from this.
 - **Workspace with lib + bins** — Core logic lives in `aliasman-core` so both the CLI and web frontend consume it.
 - **Enum dispatch for providers** — Provider selection uses Rust enums with `serde(tag = "type")` rather than dynamic registration. Type-safe and exhaustive at compile time.
-- **Dual-write pattern** — Mutations (create, delete, suspend, unsuspend) write to both the email provider and storage provider. The email provider manages actual email routing; storage maintains metadata, timestamps, and descriptions.
+- **Dual-write pattern** — Mutations (create, edit, delete, suspend, unsuspend) write to both the email provider and storage provider. The email provider manages actual email routing; storage maintains metadata, timestamps, and descriptions.
 - **Testable provider wrappers** — External API clients (e.g. `RackspaceClient`) are wrapped behind internal traits (`RackspaceClientImpl`) so they can be replaced with mocks in tests without hitting real services.
 - **thiserror + anyhow** — `thiserror` for typed errors in the library, `anyhow` for ergonomic error propagation in the CLI binary.
 - **TOML configuration** — Config file at `~/.config/aliasman/config.toml`, loaded via the `config` crate with environment variable overrides.
@@ -225,6 +225,19 @@ List all aliases:
 aliasman alias list
 ```
 
+Edit an alias's email addresses or description:
+
+```sh
+# Change the description
+aliasman alias edit -a 5f888d1272833b09 -D "new description"
+
+# Change the target email addresses
+aliasman alias edit -a 5f888d1272833b09 -e newperson@example.com
+
+# Change both
+aliasman alias edit -a 5f888d1272833b09 -e newperson@example.com -D "new description"
+```
+
 Delete an alias:
 
 ```sh
@@ -241,6 +254,14 @@ Unsuspend an alias (restarts email routing):
 
 ```sh
 aliasman alias unsuspend -a 5f888d1272833b09 -d example.com
+```
+
+Preview any mutation without making changes:
+
+```sh
+aliasman --dry-run alias create -r -D "test"
+aliasman --dry-run alias edit -a 5f888d1272833b09 -D "new description"
+aliasman --dry-run alias delete -a 5f888d1272833b09
 ```
 
 Search aliases with a regular expression (matches against alias, domain, email addresses,
@@ -273,10 +294,13 @@ Start the web server:
 aliasman-web
 ```
 
-This starts a read-only web UI at `http://127.0.0.1:3000` using your existing
+This starts the web UI at `http://127.0.0.1:3000` using your existing
 `~/.config/aliasman/config.toml`. The UI provides:
 
-- Alias table with search and filtering (powered by HTMX)
+- Alias table displaying `alias@domain` with search and filtering (powered by HTMX)
+- Create aliases with an inline form and random name generator
+- Edit alias email addresses and descriptions inline
+- Suspend, unsuspend, and delete aliases with per-row action buttons
 - System switcher dropdown for multi-system configs
 - Hide suspended / hide enabled toggles
 - Manual refresh button and automatic 60-second polling
@@ -348,7 +372,6 @@ Use `--legacy-source` flag when converting from the old format.
 
 ## Planned Features
 
-- **Additional CLI commands** — audit, sync, sync-from-email, update-description
+- **Additional CLI commands** — audit, sync, sync-from-email
 - **Additional providers** — files storage, Google Workspace email
-- **Web frontend mutations** — create, delete, suspend, unsuspend aliases from the web UI
 - **Web authentication** — Login flow with RBAC (role-based access control) for multi-user deployments

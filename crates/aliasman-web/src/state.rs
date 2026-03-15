@@ -75,6 +75,33 @@ impl AppState {
         aliasman_core::create_alias(storage.as_ref(), email.as_ref(), alias).await
     }
 
+    /// Edit an alias on the active system.
+    pub async fn edit_alias(
+        &self,
+        alias: &str,
+        domain: &str,
+        new_addresses: Option<Vec<String>>,
+        new_description: Option<String>,
+    ) -> CoreResult<Alias> {
+        let active = self.active_system.read().await.clone();
+        let system_config = self.config.system(Some(&active))?;
+        let email = create_email_provider(&system_config.email)?;
+
+        let systems = self.systems.read().await;
+        let storage = systems.get(&active).ok_or_else(|| {
+            aliasman_core::error::Error::Config(format!("active system '{}' not found", active))
+        })?;
+        aliasman_core::edit_alias(
+            storage.as_ref(),
+            email.as_ref(),
+            alias,
+            domain,
+            new_addresses,
+            new_description,
+        )
+        .await
+    }
+
     /// Delete an alias from the active system (dual-write: email provider first, then storage).
     pub async fn delete_alias(&self, alias: &str, domain: &str) -> CoreResult<()> {
         let active = self.active_system.read().await.clone();

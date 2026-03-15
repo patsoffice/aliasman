@@ -14,6 +14,10 @@
     <td class="px-4 py-2 text-sm text-gray-500">{{ alias.modified_at }}</td>
     <td class="px-4 py-2 text-sm whitespace-nowrap">
         <div class="flex gap-1">
+            <button hx-get="/aliases/edit?alias={{ alias.alias }}&domain={{ alias.domain }}"
+                    hx-target="#create-form-container"
+                    hx-swap="innerHTML show:#create-form-container:top"
+                    class="text-xs text-blue-600 hover:text-blue-800 underline">Edit</button>
             {% if alias.suspended %}
             <form hx-post="/aliases/unsuspend" hx-target="#action-result" hx-swap="innerHTML">
                 <input type="hidden" name="alias" value="{{ alias.alias }}">

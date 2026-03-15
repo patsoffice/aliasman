@@ -85,6 +85,15 @@ pub struct CreateAliasForm {
     pub description: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct EditAliasForm {
+    pub alias: String,
+    pub domain: String,
+    pub email_addresses: String,
+    #[serde(default)]
+    pub description: String,
+}
+
 // -- Templates --
 
 #[derive(Template)]
@@ -136,6 +145,15 @@ struct ActionResultTemplate {
     message: String,
 }
 
+#[derive(Template)]
+#[template(path = "partials/edit_form.html")]
+struct EditFormTemplate {
+    alias: String,
+    domain: String,
+    email_addresses: String,
+    description: String,
+}
+
 // -- Router --
 
 pub fn router(state: SharedState) -> Router {
@@ -143,6 +161,7 @@ pub fn router(state: SharedState) -> Router {
         .route("/", get(index_handler))
         .route("/aliases", get(aliases_handler))
         .route("/aliases/create", get(create_form_handler).post(create_alias_handler))
+        .route("/aliases/edit", get(edit_form_handler).post(edit_alias_handler))
         .route("/aliases/delete", post(delete_alias_handler))
         .route("/aliases/suspend", post(suspend_alias_handler))
         .route("/aliases/unsuspend", post(unsuspend_alias_handler))
@@ -312,6 +331,57 @@ async fn create_alias_handler(
         );
     }
     Ok(response)
+}
+
+async fn edit_form_handler(
+    State(state): State<SharedState>,
+    Query(form): Query<AliasActionForm>,
+) -> Result<Html<String>, AppError> {
+    let filter = AliasFilter::default();
+    let aliases = state.list_aliases(&filter).await?;
+    let existing = aliases
+        .into_iter()
+        .find(|a| a.alias == form.alias && a.domain == form.domain)
+        .ok_or_else(|| {
+            AppError::Internal(format!("alias '{}@{}' not found", form.alias, form.domain))
+        })?;
+
+    let template = EditFormTemplate {
+        alias: existing.alias,
+        domain: existing.domain,
+        email_addresses: existing.email_addresses.join(", "),
+        description: existing.description,
+    };
+
+    Ok(Html(template.render().map_err(|e| {
+        AppError::Internal(format!("template render error: {}", e))
+    })?))
+}
+
+async fn edit_alias_handler(
+    State(state): State<SharedState>,
+    Form(form): Form<EditAliasForm>,
+) -> Result<impl IntoResponse, AppError> {
+    let addresses: Vec<String> = form
+        .email_addresses
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    let result = state
+        .edit_alias(
+            &form.alias,
+            &form.domain,
+            Some(addresses),
+            Some(form.description.trim().to_string()),
+        )
+        .await;
+
+    alias_action_response(
+        result.map(|_| ()),
+        format!("Updated alias {}@{}", form.alias, form.domain),
+    )
 }
 
 async fn delete_alias_handler(

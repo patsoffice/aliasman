@@ -6,7 +6,8 @@ use aliasman_core::email::EmailProvider;
 use aliasman_core::model::{generate_random_alias, AliasFilter};
 use aliasman_core::storage::StorageProvider;
 use aliasman_core::{
-    build_alias, create_alias, delete_alias, list_aliases, suspend_alias, unsuspend_alias,
+    build_alias, create_alias, delete_alias, edit_alias, list_aliases, suspend_alias,
+    unsuspend_alias,
 };
 
 use crate::output::print_alias_table;
@@ -38,6 +39,25 @@ pub enum AliasCommands {
         /// Length of random alias (max 32)
         #[arg(short = 'l', long, default_value = "16")]
         random_length: usize,
+    },
+
+    /// Edit an email alias's addresses or description
+    Edit {
+        /// Alias name to edit
+        #[arg(short, long)]
+        alias: String,
+
+        /// Domain of the alias
+        #[arg(short, long)]
+        domain: Option<String>,
+
+        /// New target email address(es) (replaces existing)
+        #[arg(short, long = "email-address")]
+        email_address: Vec<String>,
+
+        /// New description (replaces existing)
+        #[arg(short = 'D', long)]
+        description: Option<String>,
     },
 
     /// Delete an email alias
@@ -149,6 +169,60 @@ pub async fn handle(
                 let created = result?;
                 close_result?;
                 println!("Created alias {}", created);
+            }
+        }
+
+        AliasCommands::Edit {
+            alias,
+            domain,
+            email_address,
+            description,
+        } => {
+            let domain = domain
+                .as_deref()
+                .or(default_domain)
+                .context("--domain is required (no default domain configured)")?;
+
+            let new_addresses = if email_address.is_empty() {
+                None
+            } else {
+                Some(email_address.clone())
+            };
+
+            if new_addresses.is_none() && description.is_none() {
+                bail!("at least one of --email-address or --description must be specified");
+            }
+
+            if dry_run {
+                storage.open(true).await?;
+                let existing = storage
+                    .get(alias, domain)
+                    .await?
+                    .ok_or_else(|| anyhow::anyhow!("alias '{}@{}' not found", alias, domain))?;
+                storage.close().await?;
+                println!("Would edit alias {}@{}:", alias, domain);
+                if let Some(ref addrs) = new_addresses {
+                    println!(
+                        "  email addresses: {} -> {}",
+                        existing.email_addresses.join(", "),
+                        addrs.join(", ")
+                    );
+                }
+                if let Some(ref desc) = description {
+                    println!(
+                        "  description: {:?} -> {:?}",
+                        existing.description, desc
+                    );
+                }
+            } else {
+                storage.open(false).await?;
+                let result =
+                    edit_alias(storage, email, alias, domain, new_addresses, description.clone())
+                        .await;
+                let close_result = storage.close().await;
+                let updated = result?;
+                close_result?;
+                println!("Updated alias {}", updated);
             }
         }
 

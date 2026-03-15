@@ -105,6 +105,45 @@ pub async fn create_alias(
     Ok(alias)
 }
 
+/// Edit an alias's email addresses and/or description.
+/// If email addresses change, the alias is deleted and re-created on the email provider.
+pub async fn edit_alias(
+    storage: &dyn StorageProvider,
+    email: &dyn EmailProvider,
+    alias: &str,
+    domain: &str,
+    new_addresses: Option<Vec<String>>,
+    new_description: Option<String>,
+) -> Result<Alias> {
+    let mut existing = storage.get(alias, domain).await?.ok_or_else(|| Error::AliasNotFound {
+        alias: alias.to_string(),
+        domain: domain.to_string(),
+    })?;
+
+    let addresses_changed = new_addresses
+        .as_ref()
+        .is_some_and(|a| *a != existing.email_addresses);
+
+    if let Some(addresses) = new_addresses {
+        existing.email_addresses = addresses;
+    }
+    if let Some(description) = new_description {
+        existing.description = description;
+    }
+
+    // If addresses changed and alias is active, update the email provider
+    if addresses_changed && !existing.suspended {
+        email.alias_delete(alias, domain).await?;
+        email
+            .alias_create(alias, domain, &existing.email_addresses)
+            .await?;
+    }
+
+    storage.update(&existing).await?;
+
+    Ok(existing)
+}
+
 /// Delete an alias from both the email provider and storage.
 pub async fn delete_alias(
     storage: &dyn StorageProvider,
