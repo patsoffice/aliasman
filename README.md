@@ -280,6 +280,24 @@ aliasman alias search --exclude-suspended
 aliasman alias search -s "example\\.com" --exclude-suspended
 ```
 
+Audit aliases by comparing storage against the email provider:
+
+```sh
+# Audit the default domain
+aliasman audit
+
+# Audit a specific domain
+aliasman audit -d example.com
+```
+
+Reports three types of differences:
+
+- **MISSING FROM EMAIL** — alias is active in storage but not on the email provider
+- **MISSING FROM STORAGE** — alias exists on the email provider but is not tracked in storage
+- **ADDRESS MISMATCH** — alias exists in both but the target email addresses differ
+
+Suspended aliases are expected to be absent from the email provider and are not flagged.
+
 Use a specific system:
 
 ```sh
@@ -372,6 +390,6 @@ Use `--legacy-source` flag when converting from the old format.
 
 ## Planned Features
 
-- **Additional CLI commands** — audit, sync, sync-from-email
+- **Additional CLI commands** — sync, sync-from-email
 - **Additional providers** — files storage, Google Workspace email
 - **Web authentication** — Login flow with RBAC (role-based access control) for multi-user deployments

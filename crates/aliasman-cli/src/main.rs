@@ -36,6 +36,13 @@ enum Commands {
         command: commands::alias::AliasCommands,
     },
 
+    /// Audit aliases by comparing storage against the email provider
+    Audit {
+        /// Domain to audit
+        #[arg(short, long)]
+        domain: Option<String>,
+    },
+
     /// Generate a default configuration file
     Config,
 
@@ -54,6 +61,24 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
+        Commands::Audit { domain } => {
+            let config =
+                AppConfig::load(&cli.config_dir).context("failed to load configuration")?;
+            let system = config
+                .system(cli.system.as_deref())
+                .context("failed to resolve system")?;
+
+            let domain = domain
+                .as_deref()
+                .or(system.domain.as_deref())
+                .context("--domain is required (no default domain configured)")?;
+
+            let (mut storage, email) =
+                create_providers(system).context("failed to create providers")?;
+
+            commands::audit::handle(storage.as_mut(), email.as_ref(), domain).await?;
+        }
+
         Commands::Config => {
             commands::config::handle(&cli.config_dir)?;
         }

@@ -5,6 +5,7 @@ pub mod model;
 pub mod storage;
 
 use chrono::Utc;
+use std::collections::HashMap;
 use std::path::Path;
 
 use crate::config::{AppConfig, EmailConfig, StorageConfig, SystemConfig};
@@ -244,6 +245,140 @@ pub async fn list_aliases(
     let mut aliases = storage.search(filter).await?;
     aliases.sort();
     Ok(aliases)
+}
+
+/// A single difference found during an audit.
+#[derive(Debug)]
+pub enum AuditDiff {
+    /// Alias exists in storage but not on the email provider.
+    StorageOnly {
+        alias: String,
+        domain: String,
+        suspended: bool,
+    },
+    /// Alias exists on the email provider but not in storage.
+    EmailOnly {
+        alias: String,
+        domain: String,
+        email_addresses: Vec<String>,
+    },
+    /// Alias exists in both but email addresses differ.
+    AddressMismatch {
+        alias: String,
+        domain: String,
+        storage_addresses: Vec<String>,
+        email_addresses: Vec<String>,
+    },
+}
+
+/// Result of an audit operation.
+#[derive(Debug)]
+pub struct AuditResult {
+    pub diffs: Vec<AuditDiff>,
+    pub storage_count: usize,
+    pub email_count: usize,
+}
+
+/// Audit aliases by comparing storage against the email provider for a given domain.
+///
+/// Reports:
+/// - Aliases in storage (active, non-suspended) but missing from the email provider
+/// - Aliases on the email provider but missing from storage
+/// - Aliases in both but with different email addresses
+///
+/// Suspended aliases are expected to be absent from the email provider, so they
+/// are only flagged if they unexpectedly *exist* on the email provider.
+pub async fn audit_aliases(
+    storage: &dyn StorageProvider,
+    email: &dyn EmailProvider,
+    domain: &str,
+) -> Result<AuditResult> {
+    let storage_aliases = storage.search(&AliasFilter::default()).await?;
+    let email_aliases = email.alias_list(domain).await?;
+
+    // Build lookup maps keyed by alias name (within the target domain)
+    let storage_map: HashMap<&str, &Alias> = storage_aliases
+        .iter()
+        .filter(|a| a.domain == domain)
+        .map(|a| (a.alias.as_str(), a))
+        .collect();
+
+    let email_map: HashMap<&str, &Alias> = email_aliases
+        .iter()
+        .map(|a| (a.alias.as_str(), a))
+        .collect();
+
+    let mut diffs = Vec::new();
+
+    // Check storage aliases against email provider
+    for (name, sa) in &storage_map {
+        match email_map.get(name) {
+            None if !sa.suspended => {
+                // Active alias missing from email provider
+                diffs.push(AuditDiff::StorageOnly {
+                    alias: sa.alias.clone(),
+                    domain: sa.domain.clone(),
+                    suspended: false,
+                });
+            }
+            Some(ea) if sa.suspended => {
+                // Suspended alias should not exist on email provider
+                diffs.push(AuditDiff::EmailOnly {
+                    alias: ea.alias.clone(),
+                    domain: ea.domain.clone(),
+                    email_addresses: ea.email_addresses.clone(),
+                });
+            }
+            Some(ea) => {
+                // Both exist — compare addresses
+                let mut s_addrs = sa.email_addresses.clone();
+                let mut e_addrs = ea.email_addresses.clone();
+                s_addrs.sort();
+                e_addrs.sort();
+                if s_addrs != e_addrs {
+                    diffs.push(AuditDiff::AddressMismatch {
+                        alias: sa.alias.clone(),
+                        domain: sa.domain.clone(),
+                        storage_addresses: sa.email_addresses.clone(),
+                        email_addresses: ea.email_addresses.clone(),
+                    });
+                }
+            }
+            _ => {} // Suspended and not on email — expected
+        }
+    }
+
+    // Check email aliases not in storage
+    for (name, ea) in &email_map {
+        if !storage_map.contains_key(name) {
+            diffs.push(AuditDiff::EmailOnly {
+                alias: ea.alias.clone(),
+                domain: ea.domain.clone(),
+                email_addresses: ea.email_addresses.clone(),
+            });
+        }
+    }
+
+    // Sort diffs by alias name for stable output
+    diffs.sort_by(|a, b| {
+        let key_a = match a {
+            AuditDiff::StorageOnly { alias, .. }
+            | AuditDiff::EmailOnly { alias, .. }
+            | AuditDiff::AddressMismatch { alias, .. } => alias,
+        };
+        let key_b = match b {
+            AuditDiff::StorageOnly { alias, .. }
+            | AuditDiff::EmailOnly { alias, .. }
+            | AuditDiff::AddressMismatch { alias, .. } => alias,
+        };
+        key_a.cmp(key_b)
+    });
+
+    Ok(AuditResult {
+        diffs,
+        storage_count: storage_map.len(),
+        email_count: email_aliases.len(),
+    })
 }
 
 /// Build a new Alias struct with sensible defaults for timestamps.
