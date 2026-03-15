@@ -98,6 +98,7 @@ pub async fn handle(
     email: &dyn EmailProvider,
     default_domain: Option<&str>,
     default_addresses: Option<&[String]>,
+    dry_run: bool,
 ) -> Result<()> {
     match cmd {
         AliasCommands::Create {
@@ -132,14 +133,23 @@ pub async fn handle(
 
             let description = description.clone().unwrap_or_default();
 
-            storage.open(false).await?;
             let alias = build_alias(alias_name, domain, addresses, description);
-            let result = create_alias(storage, email, alias).await;
-            let close_result = storage.close().await;
-            let created = result?;
-            close_result?;
 
-            println!("Created alias {}", created);
+            if dry_run {
+                storage.open(true).await?;
+                if storage.get(&alias.alias, &alias.domain).await?.is_some() {
+                    bail!("alias '{}' already exists", alias.full_alias());
+                }
+                storage.close().await?;
+                println!("Would create alias {}", alias);
+            } else {
+                storage.open(false).await?;
+                let result = create_alias(storage, email, alias).await;
+                let close_result = storage.close().await;
+                let created = result?;
+                close_result?;
+                println!("Created alias {}", created);
+            }
         }
 
         AliasCommands::Delete { alias, domain } => {
@@ -148,13 +158,21 @@ pub async fn handle(
                 .or(default_domain)
                 .context("--domain is required (no default domain configured)")?;
 
-            storage.open(false).await?;
-            let result = delete_alias(storage, email, alias, domain).await;
-            let close_result = storage.close().await;
-            result?;
-            close_result?;
-
-            println!("Deleted alias {}@{}", alias, domain);
+            if dry_run {
+                storage.open(true).await?;
+                if storage.get(alias, domain).await?.is_none() {
+                    bail!("alias '{}@{}' not found", alias, domain);
+                }
+                storage.close().await?;
+                println!("Would delete alias {}@{}", alias, domain);
+            } else {
+                storage.open(false).await?;
+                let result = delete_alias(storage, email, alias, domain).await;
+                let close_result = storage.close().await;
+                result?;
+                close_result?;
+                println!("Deleted alias {}@{}", alias, domain);
+            }
         }
 
         AliasCommands::List => {
@@ -177,13 +195,25 @@ pub async fn handle(
                 .or(default_domain)
                 .context("--domain is required (no default domain configured)")?;
 
-            storage.open(false).await?;
-            let result = suspend_alias(storage, email, alias, domain).await;
-            let close_result = storage.close().await;
-            result?;
-            close_result?;
-
-            println!("Suspended alias {}@{}", alias, domain);
+            if dry_run {
+                storage.open(true).await?;
+                match storage.get(alias, domain).await? {
+                    None => bail!("alias '{}@{}' not found", alias, domain),
+                    Some(a) if a.suspended => {
+                        bail!("alias '{}@{}' is already suspended", alias, domain)
+                    }
+                    _ => {}
+                }
+                storage.close().await?;
+                println!("Would suspend alias {}@{}", alias, domain);
+            } else {
+                storage.open(false).await?;
+                let result = suspend_alias(storage, email, alias, domain).await;
+                let close_result = storage.close().await;
+                result?;
+                close_result?;
+                println!("Suspended alias {}@{}", alias, domain);
+            }
         }
 
         AliasCommands::Unsuspend { alias, domain } => {
@@ -192,13 +222,25 @@ pub async fn handle(
                 .or(default_domain)
                 .context("--domain is required (no default domain configured)")?;
 
-            storage.open(false).await?;
-            let result = unsuspend_alias(storage, email, alias, domain).await;
-            let close_result = storage.close().await;
-            result?;
-            close_result?;
-
-            println!("Unsuspended alias {}@{}", alias, domain);
+            if dry_run {
+                storage.open(true).await?;
+                match storage.get(alias, domain).await? {
+                    None => bail!("alias '{}@{}' not found", alias, domain),
+                    Some(a) if !a.suspended => {
+                        bail!("alias '{}@{}' is not suspended", alias, domain)
+                    }
+                    _ => {}
+                }
+                storage.close().await?;
+                println!("Would unsuspend alias {}@{}", alias, domain);
+            } else {
+                storage.open(false).await?;
+                let result = unsuspend_alias(storage, email, alias, domain).await;
+                let close_result = storage.close().await;
+                result?;
+                close_result?;
+                println!("Unsuspended alias {}@{}", alias, domain);
+            }
         }
 
         AliasCommands::Search {

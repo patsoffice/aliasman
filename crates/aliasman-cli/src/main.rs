@@ -20,6 +20,10 @@ struct Cli {
     #[arg(long, short)]
     system: Option<String>,
 
+    /// Show what would be done without making any changes
+    #[arg(long)]
+    dry_run: bool,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -74,6 +78,7 @@ async fn main() -> Result<()> {
                 email.as_ref(),
                 system.domain.as_deref(),
                 system.email_addresses.as_deref(),
+                cli.dry_run,
             )
             .await?;
         }
