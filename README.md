@@ -58,11 +58,12 @@ aliasman/
 
 **Storage providers** manage alias metadata (descriptions, timestamps, suspension state):
 
-| Provider | Status      | Description                                               |
-|----------|-------------|-----------------------------------------------------------|
-| `sqlite` | Implemented | SQLite via sqlx. Default: `~/.config/aliasman/aliasman.db` |
-| `s3`     | Implemented | AWS S3 with per-alias objects and an index blob           |
-| `files`  | Planned     | JSON files on the local filesystem                        |
+| Provider   | Status      | Description                                                   |
+|------------|-------------|---------------------------------------------------------------|
+| `sqlite`   | Implemented | SQLite via sqlx. Default: `~/.config/aliasman/aliasman.db`    |
+| `postgres` | Implemented | PostgreSQL via sqlx. Suitable for shared/container deployments |
+| `s3`       | Implemented | AWS S3 with per-alias objects and an index blob               |
+| `files`    | Planned     | JSON files on the local filesystem                            |
 
 **Email providers** manage actual email routing:
 
@@ -201,6 +202,14 @@ region = "us-east-1"
 endpoint = "http://localhost:9000"
 access_key_id = "minioadmin"
 secret_access_key = "minioadmin"
+```
+
+PostgreSQL storage is suitable for shared or container-based deployments:
+
+```toml
+[systems.prod.storage]
+type = "postgres"
+url = "postgres://user:pass@host/dbname"
 ```
 
 Use `--system work` to target a specific system, or omit it to use `default_system`.

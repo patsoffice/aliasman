@@ -13,6 +13,7 @@ use crate::email::rackspace::RackspaceEmailProvider;
 use crate::email::EmailProvider;
 use crate::error::{Error, Result};
 use crate::model::{Alias, AliasFilter};
+use crate::storage::postgres::PostgresStorage;
 use crate::storage::s3::S3Storage;
 use crate::storage::sqlite::SqliteStorage;
 use crate::storage::StorageProvider;
@@ -24,6 +25,7 @@ pub fn create_storage_provider(config: &StorageConfig) -> Box<dyn StorageProvide
             let expanded = AppConfig::expand_path(db_path);
             Box::new(SqliteStorage::new(&expanded))
         }
+        StorageConfig::Postgres { url } => Box::new(PostgresStorage::new(url)),
         StorageConfig::S3 {
             bucket,
             region,

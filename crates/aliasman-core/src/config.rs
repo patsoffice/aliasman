@@ -64,6 +64,12 @@ pub enum StorageConfig {
     #[serde(rename = "sqlite")]
     Sqlite { db_path: String },
 
+    #[serde(rename = "postgres")]
+    Postgres {
+        /// PostgreSQL connection URL (e.g. postgres://user:pass@host/db)
+        url: String,
+    },
+
     #[serde(rename = "s3")]
     S3 {
         bucket: String,
