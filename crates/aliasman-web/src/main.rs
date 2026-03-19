@@ -18,7 +18,7 @@ use crate::state::AppState;
 #[command(name = "aliasman-web", about = "Aliasman web frontend")]
 struct Cli {
     /// Configuration directory
-    #[arg(long, default_value_os_t = AppConfig::default_config_dir())]
+    #[arg(long, env = "ALIASMAN_CONFIG_DIR", default_value_os_t = AppConfig::default_config_dir())]
     config_dir: PathBuf,
 
     /// Bind address

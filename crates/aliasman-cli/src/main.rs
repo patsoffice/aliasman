@@ -13,7 +13,7 @@ use aliasman_core::create_providers;
 #[command(name = "aliasman", about = "Email alias manager")]
 struct Cli {
     /// Configuration directory
-    #[arg(long, default_value_os_t = AppConfig::default_config_dir())]
+    #[arg(long, env = "ALIASMAN_CONFIG_DIR", default_value_os_t = AppConfig::default_config_dir())]
     config_dir: PathBuf,
 
     /// System to use (overrides default_system in config)

@@ -10,7 +10,7 @@ path = "src/main.rs"
 [dependencies]
 aliasman-core = { path = "../aliasman-core" }
 anyhow = "1"
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "env"] }
 comfy-table = "7"
 regex = "1"
 tokio = { version = "1", features = ["full"] }

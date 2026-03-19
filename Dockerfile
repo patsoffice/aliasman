@@ -22,6 +22,10 @@ RUN apt-get update && apt-get install -y \
 COPY --from=builder /app/target/release/aliasman /usr/local/bin/aliasman
 COPY --from=builder /app/target/release/aliasman-web /usr/local/bin/aliasman-web
 
+RUN mkdir -p /config
+
+ENV ALIASMAN_CONFIG_DIR=/config
+
 EXPOSE 3000
 
 ENTRYPOINT ["aliasman-web", "--bind", "0.0.0.0:3000"]
