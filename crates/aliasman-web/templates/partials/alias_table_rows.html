@@ -1,41 +1,41 @@
 {% for alias in aliases %}
-<tr class="{% if alias.suspended %}bg-red-50 text-gray-400{% else %}hover:bg-gray-50{% endif %}">
-    <td class="px-4 py-2 text-sm font-mono">{{ alias.full_alias }}</td>
-    <td class="px-4 py-2 text-sm">{{ alias.email_addresses }}</td>
-    <td class="px-4 py-2 text-sm">{{ alias.description }}</td>
+<tr class="{% if alias.suspended %}bg-red-50 dark:bg-red-900/20 text-gray-400 dark:text-gray-500{% else %}hover:bg-gray-50 dark:hover:bg-gray-700/50{% endif %}">
+    <td class="px-4 py-2 text-sm font-mono dark:text-gray-200">{{ alias.full_alias }}</td>
+    <td class="px-4 py-2 text-sm dark:text-gray-200">{{ alias.email_addresses }}</td>
+    <td class="px-4 py-2 text-sm dark:text-gray-200">{{ alias.description }}</td>
     <td class="px-4 py-2 text-sm">
         {% if alias.suspended %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Suspended</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300">Suspended</span>
         {% else %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Active</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300">Active</span>
         {% endif %}
     </td>
-    <td class="px-4 py-2 text-sm text-gray-500">{{ alias.created_at }}</td>
-    <td class="px-4 py-2 text-sm text-gray-500">{{ alias.modified_at }}</td>
+    <td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">{{ alias.created_at }}</td>
+    <td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">{{ alias.modified_at }}</td>
     <td class="px-4 py-2 text-sm whitespace-nowrap">
         <div class="flex gap-1">
             <button hx-get="/aliases/edit?alias={{ alias.alias }}&domain={{ alias.domain }}"
                     hx-target="#create-form-container"
                     hx-swap="innerHTML show:#create-form-container:top"
-                    class="text-xs text-blue-600 hover:text-blue-800 underline">Edit</button>
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline">Edit</button>
             {% if alias.suspended %}
             <form hx-post="/aliases/unsuspend" hx-target="#action-result" hx-swap="innerHTML">
                 <input type="hidden" name="alias" value="{{ alias.alias }}">
                 <input type="hidden" name="domain" value="{{ alias.domain }}">
-                <button type="submit" class="text-xs text-green-600 hover:text-green-800 underline">Unsuspend</button>
+                <button type="submit" class="text-xs text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 underline">Unsuspend</button>
             </form>
             {% else %}
             <form hx-post="/aliases/suspend" hx-target="#action-result" hx-swap="innerHTML">
                 <input type="hidden" name="alias" value="{{ alias.alias }}">
                 <input type="hidden" name="domain" value="{{ alias.domain }}">
-                <button type="submit" class="text-xs text-yellow-600 hover:text-yellow-800 underline">Suspend</button>
+                <button type="submit" class="text-xs text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 underline">Suspend</button>
             </form>
             {% endif %}
             <form hx-post="/aliases/delete" hx-target="#action-result" hx-swap="innerHTML"
                   hx-confirm="Delete alias {{ alias.full_alias }}?">
                 <input type="hidden" name="alias" value="{{ alias.alias }}">
                 <input type="hidden" name="domain" value="{{ alias.domain }}">
-                <button type="submit" class="text-xs text-red-600 hover:text-red-800 underline">Delete</button>
+                <button type="submit" class="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline">Delete</button>
             </form>
         </div>
     </td>
@@ -43,6 +43,6 @@
 {% endfor %}
 {% if aliases.is_empty() %}
 <tr>
-    <td colspan="7" class="px-4 py-8 text-center text-gray-500">No aliases found.</td>
+    <td colspan="7" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No aliases found.</td>
 </tr>
 {% endif %}

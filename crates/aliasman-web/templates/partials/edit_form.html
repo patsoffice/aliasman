@@ -1,5 +1,5 @@
-<div id="create-form" class="mb-4 p-4 bg-white rounded-lg shadow border border-gray-200">
-    <h3 class="text-sm font-medium text-gray-700 mb-3">Edit Alias: {{ alias }}@{{ domain }}</h3>
+<div id="create-form" class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Edit Alias: {{ alias }}@{{ domain }}</h3>
     <form hx-post="/aliases/edit"
           hx-target="#action-result"
           hx-swap="innerHTML"
@@ -7,15 +7,15 @@
         <input type="hidden" name="alias" value="{{ alias }}">
         <input type="hidden" name="domain" value="{{ domain }}">
         <div>
-            <label class="block text-xs text-gray-500 mb-1">Email Address(es)</label>
+            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Email Address(es)</label>
             <input type="text" name="email_addresses" required value="{{ email_addresses }}"
-                   class="border border-gray-300 rounded px-3 py-1.5 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-64 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                    placeholder="user@example.com, other@example.com">
         </div>
         <div>
-            <label class="block text-xs text-gray-500 mb-1">Description</label>
+            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Description</label>
             <input type="text" name="description" value="{{ description }}"
-                   class="border border-gray-300 rounded px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-48 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                    placeholder="optional">
         </div>
         <button type="submit"
@@ -24,7 +24,7 @@
         </button>
         <button type="button"
                 onclick="this.closest('#create-form').remove()"
-                class="px-4 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                class="px-4 py-1.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
             Cancel
         </button>
     </form>

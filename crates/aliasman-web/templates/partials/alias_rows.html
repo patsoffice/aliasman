@@ -1,4 +1,4 @@
 {% include "partials/alias_table_rows.html" %}
-<span id="alias-count" hx-swap-oob="true" class="text-sm text-gray-500 ml-auto">
+<span id="alias-count" hx-swap-oob="true" class="text-sm text-gray-500 dark:text-gray-400 ml-auto">
     {{ alias_count }} alias{% if alias_count != 1 %}es{% endif %}{% if suspended_count > 0 %} ({{ suspended_count }} suspended){% endif %}
 </span>

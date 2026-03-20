@@ -3,19 +3,19 @@
            name="q"
            placeholder="Search aliases..."
            value="{{ query }}"
-           class="border border-gray-300 rounded px-3 py-2 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+           class="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-64 text-sm bg-white dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
            hx-get="/aliases"
            hx-trigger="keyup changed delay:300ms"
            hx-target="#alias-table-body"
            hx-include="[name='hide_suspended'],[name='hide_enabled']"
            hx-swap="innerHTML">
 
-    <label class="flex items-center gap-1.5 text-sm text-gray-600">
+    <label class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
         <input type="checkbox"
                name="hide_suspended"
                value="true"
                {% if hide_suspended %}checked{% endif %}
-               class="rounded border-gray-300"
+               class="rounded border-gray-300 dark:border-gray-600"
                hx-get="/aliases"
                hx-trigger="change"
                hx-target="#alias-table-body"
@@ -24,12 +24,12 @@
         Hide Suspended
     </label>
 
-    <label class="flex items-center gap-1.5 text-sm text-gray-600">
+    <label class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
         <input type="checkbox"
                name="hide_enabled"
                value="true"
                {% if hide_enabled %}checked{% endif %}
-               class="rounded border-gray-300"
+               class="rounded border-gray-300 dark:border-gray-600"
                hx-get="/aliases"
                hx-trigger="change"
                hx-target="#alias-table-body"
@@ -38,7 +38,7 @@
         Hide Enabled
     </label>
 
-    <button class="text-sm text-blue-600 hover:text-blue-800 underline"
+    <button class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
             hx-get="/refresh"
             hx-target="#alias-table-body"
             hx-include="[name='q'],[name='hide_suspended'],[name='hide_enabled']"
@@ -53,7 +53,7 @@
         + Create Alias
     </button>
 
-    <span class="text-sm text-gray-500 ml-auto" id="alias-count">
+    <span class="text-sm text-gray-500 dark:text-gray-400 ml-auto" id="alias-count">
         {{ alias_count }} alias{% if alias_count != 1 %}es{% endif %}{% if suspended_count > 0 %} ({{ suspended_count }} suspended){% endif %}
     </span>
 </div>

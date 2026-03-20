@@ -1,31 +1,31 @@
 {% if success %}
-<div id="create-form" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm flex items-center justify-between">
+<div id="create-form" class="mb-4 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg text-green-700 dark:text-green-300 text-sm flex items-center justify-between">
     <span>{{ message }}</span>
     <div class="flex gap-2">
         <button hx-get="/aliases/create"
                 hx-target="#create-form"
                 hx-swap="outerHTML"
-                class="text-green-700 underline hover:text-green-900 text-sm">
+                class="text-green-700 dark:text-green-300 underline hover:text-green-900 dark:hover:text-green-100 text-sm">
             Create Another
         </button>
         <button onclick="this.closest('#create-form').remove()"
-                class="text-green-700 underline hover:text-green-900 text-sm">
+                class="text-green-700 dark:text-green-300 underline hover:text-green-900 dark:hover:text-green-100 text-sm">
             Close
         </button>
     </div>
 </div>
 {% else %}
-<div id="create-form" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center justify-between">
+<div id="create-form" class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm flex items-center justify-between">
     <span>{{ message }}</span>
     <div class="flex gap-2">
         <button hx-get="/aliases/create"
                 hx-target="#create-form"
                 hx-swap="outerHTML"
-                class="text-red-700 underline hover:text-red-900 text-sm">
+                class="text-red-700 dark:text-red-300 underline hover:text-red-900 dark:hover:text-red-100 text-sm">
             Try Again
         </button>
         <button onclick="this.closest('#create-form').remove()"
-                class="text-red-700 underline hover:text-red-900 text-sm">
+                class="text-red-700 dark:text-red-300 underline hover:text-red-900 dark:hover:text-red-100 text-sm">
             Close
         </button>
     </div>
