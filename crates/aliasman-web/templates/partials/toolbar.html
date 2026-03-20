@@ -54,7 +54,7 @@
     </button>
 
     <span class="text-sm text-gray-500 ml-auto" id="alias-count">
-        {{ alias_count }} alias{% if alias_count != 1 %}es{% endif %}
+        {{ alias_count }} alias{% if alias_count != 1 %}es{% endif %}{% if suspended_count > 0 %} ({{ suspended_count }} suspended){% endif %}
     </span>
 </div>
 <div id="create-form-container"></div>

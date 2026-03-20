@@ -105,6 +105,7 @@ struct IndexTemplate {
     hide_suspended: bool,
     hide_enabled: bool,
     alias_count: usize,
+    suspended_count: usize,
 }
 
 #[derive(Template)]
@@ -112,6 +113,7 @@ struct IndexTemplate {
 struct AliasRowsTemplate {
     aliases: Vec<AliasView>,
     alias_count: usize,
+    suspended_count: usize,
 }
 
 #[derive(Template)]
@@ -122,6 +124,7 @@ struct MainContentTemplate {
     hide_suspended: bool,
     hide_enabled: bool,
     alias_count: usize,
+    suspended_count: usize,
 }
 
 #[derive(Template)]
@@ -189,6 +192,7 @@ async fn index_handler(State(state): State<SharedState>) -> Result<Html<String>,
         .map(AliasView::from)
         .collect();
     let alias_count = aliases.len();
+    let suspended_count = aliases.iter().filter(|a| a.suspended).count();
 
     let active = state.active_system_name().await;
     let template = IndexTemplate {
@@ -198,6 +202,7 @@ async fn index_handler(State(state): State<SharedState>) -> Result<Html<String>,
         hide_suspended: false,
         hide_enabled: false,
         alias_count,
+        suspended_count,
     };
 
     Ok(Html(template.render().map_err(|e| {
@@ -217,10 +222,12 @@ async fn aliases_handler(
         .map(AliasView::from)
         .collect();
     let alias_count = aliases.len();
+    let suspended_count = aliases.iter().filter(|a| a.suspended).count();
 
     let template = AliasRowsTemplate {
         aliases,
         alias_count,
+        suspended_count,
     };
 
     Ok(Html(template.render().map_err(|e| {
@@ -242,6 +249,7 @@ async fn system_handler(
         .map(AliasView::from)
         .collect();
     let alias_count = aliases.len();
+    let suspended_count = aliases.iter().filter(|a| a.suspended).count();
 
     let template = MainContentTemplate {
         aliases,
@@ -249,6 +257,7 @@ async fn system_handler(
         hide_suspended: false,
         hide_enabled: false,
         alias_count,
+        suspended_count,
     };
 
     Ok(Html(template.render().map_err(|e| {
@@ -270,10 +279,12 @@ async fn refresh_handler(
         .map(AliasView::from)
         .collect();
     let alias_count = aliases.len();
+    let suspended_count = aliases.iter().filter(|a| a.suspended).count();
 
     let template = AliasRowsTemplate {
         aliases,
         alias_count,
+        suspended_count,
     };
 
     Ok(Html(template.render().map_err(|e| {
