@@ -15,7 +15,11 @@ aliasman/
 │   │       ├── lib.rs
 │   │       ├── model.rs          # Alias, AliasFilter
 │   │       ├── error.rs          # Typed error types (thiserror)
-│   │       ├── config.rs         # AppConfig with serde + config crate
+│   │       ├── config.rs         # AppConfig, AuthConfig with serde + config crate
+│   │       ├── auth/
+│   │       │   ├── mod.rs        # UserStore trait, auth types, password hashing
+│   │       │   ├── sqlite.rs     # SQLite user store implementation
+│   │       │   └── postgres.rs   # PostgreSQL user store implementation
 │   │       ├── storage/
 │   │       │   ├── mod.rs        # StorageProvider trait
 │   │       │   ├── sqlite.rs     # SQLite implementation (sqlx)
@@ -30,7 +34,8 @@ aliasman/
 │   │       │   ├── mod.rs
 │   │       │   ├── alias.rs      # alias create/edit/delete/list/suspend/search
 │   │       │   ├── config.rs     # config command
-│   │       │   └── storage.rs    # storage convert command
+│   │       │   ├── storage.rs    # storage convert command
+│   │       │   └── user.rs       # user create/delete/grant/revoke/list/show
 │   │       └── output.rs         # Table formatting (comfy-table)
 │   └── aliasman-web/             # Binary: web frontend
 │       ├── src/
@@ -96,6 +101,28 @@ pub trait EmailProvider: Send + Sync {
 }
 ```
 
+```rust
+#[async_trait]
+pub trait UserStore: Send + Sync {
+    async fn open(&mut self) -> Result<(), AuthError>;
+    async fn close(&mut self);
+    async fn create_user(&self, new_user: &NewUser) -> Result<User, AuthError>;
+    async fn get_user(&self, id: &str) -> Result<Option<User>, AuthError>;
+    async fn get_user_by_username(&self, username: &str) -> Result<Option<User>, AuthError>;
+    async fn list_users(&self) -> Result<Vec<User>, AuthError>;
+    async fn delete_user(&self, username: &str) -> Result<(), AuthError>;
+    async fn update_password(&self, username: &str, new_password: &str) -> Result<(), AuthError>;
+    async fn authenticate(&self, username: &str, password: &str) -> Result<Session, AuthError>;
+    async fn get_session(&self, token: &str) -> Result<Session, AuthError>;
+    async fn delete_session(&self, token: &str) -> Result<(), AuthError>;
+    async fn cleanup_expired_sessions(&self) -> Result<u64, AuthError>;
+    async fn set_permissions(&self, user_id: &str, permissions: &[Permission]) -> Result<(), AuthError>;
+    async fn get_permissions(&self, user_id: &str) -> Result<Vec<Permission>, AuthError>;
+    async fn clear_permissions(&self, user_id: &str, resource_type: &ResourceType, resource_id: &str) -> Result<(), AuthError>;
+    async fn check_permission(&self, user_id: &str, action: &Action, resource_type: &ResourceType, resource_id: &str) -> Result<bool, AuthError>;
+}
+```
+
 ### Key Dependencies
 
 | Crate | Purpose |
@@ -116,6 +143,9 @@ pub trait EmailProvider: Send + Sync {
 | `aws-config` | AWS configuration and credentials |
 | `serde_json` | JSON serialization for S3 storage |
 | `rand` | Random alias generation |
+| `argon2` | Password hashing (Argon2id) |
+| `uuid` | User/permission/session IDs |
+| `base64` | Session token encoding |
 | `axum` | Web server framework |
 | `askama` | Compile-time HTML templates |
 | `rust-embed` | Embed static assets in binary |
@@ -254,6 +284,32 @@ url = "postgres://user:pass@host/dbname"
 
 Use `--system work` to target a specific system, or omit it to use `default_system`.
 
+### Authentication (optional)
+
+To enable access controls for the web frontend, add an `[auth]` section. The user store
+can use SQLite or PostgreSQL, matching the storage provider options:
+
+```toml
+[auth]
+session_ttl_hours = 24
+
+[auth.store]
+type = "sqlite"
+db_path = "~/.config/aliasman/users.db"
+```
+
+Or with PostgreSQL:
+
+```toml
+[auth.store]
+type = "postgres"
+url = "postgres://user:pass@host/dbname"
+```
+
+When the `[auth]` section is absent, the web frontend operates without authentication
+(full access to all systems and domains). Users and permissions are managed via the CLI
+(see [User Management](#user-management) below).
+
 ## Using
 
 Create an alias with a random name:
@@ -352,6 +408,58 @@ Use a specific system:
 ```sh
 aliasman --system work alias list
 ```
+
+### User Management
+
+When `[auth]` is configured, use the `user` subcommand to manage users and permissions.
+The CLI itself does not enforce authentication — it directly accesses the user store.
+
+Bootstrap the first admin:
+
+```sh
+aliasman user create admin -p secretpassword --superuser
+```
+
+Create a user with per-domain access:
+
+```sh
+aliasman user create alice -p alicepassword
+aliasman user grant alice --domain example.com
+```
+
+Grant access to an entire system (all domains):
+
+```sh
+aliasman user grant bob --system home
+```
+
+Grant only specific actions:
+
+```sh
+aliasman user grant alice --domain other.com --actions view,create
+```
+
+View a user's details and permissions:
+
+```sh
+aliasman user show alice
+```
+
+Revoke permissions and manage users:
+
+```sh
+aliasman user revoke alice --domain other.com
+aliasman user reset-password alice -p newpassword
+aliasman user list
+aliasman user delete alice
+```
+
+**Permission model:**
+
+- **Superuser** — full access to everything across all systems and domains
+- **System grant** — access to all domains within a named system
+- **Domain grant** — access to a specific domain only
+- Actions: `view`, `create`, `delete`, `suspend`, `unsuspend` (all granted by default)
 
 ### Web Frontend
 
@@ -455,4 +563,4 @@ git push --tags
 
 - **Additional CLI commands** — sync, sync-from-email
 - **Additional providers** — files storage, Google Workspace email
-- **Web authentication** — Login flow with RBAC (role-based access control) for multi-user deployments
+- **Web authentication integration** — Login flow and middleware to enforce access controls in the web frontend (user store and CLI management are implemented)

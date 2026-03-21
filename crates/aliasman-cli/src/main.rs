@@ -54,6 +54,12 @@ enum Commands {
         #[command(subcommand)]
         command: commands::storage::StorageCommands,
     },
+
+    /// User management commands (requires [auth] in config)
+    User {
+        #[command(subcommand)]
+        command: commands::user::UserCommands,
+    },
 }
 
 #[tokio::main]
@@ -110,6 +116,12 @@ async fn main() -> Result<()> {
 
         Commands::Storage { command } => {
             commands::storage::handle(command, &cli.config_dir).await?;
+        }
+
+        Commands::User { command } => {
+            let config =
+                AppConfig::load(&cli.config_dir).context("failed to load configuration")?;
+            commands::user::handle(command, &config).await?;
         }
     }
 
