@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod config;
 pub mod email;
 pub mod error;
@@ -8,7 +9,10 @@ use chrono::Utc;
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::config::{AppConfig, EmailConfig, StorageConfig, SystemConfig};
+use crate::auth::postgres::PostgresUserStore;
+use crate::auth::sqlite::SqliteUserStore;
+use crate::auth::UserStore;
+use crate::config::{AppConfig, EmailConfig, StorageConfig, SystemConfig, UserStoreConfig};
 use crate::email::rackspace::RackspaceEmailProvider;
 use crate::email::EmailProvider;
 use crate::error::{Error, Result};
@@ -82,6 +86,19 @@ pub fn create_providers(
     let storage = create_storage_provider(&system.storage);
     let email = create_email_provider(&system.email)?;
     Ok((storage, email))
+}
+
+/// Create the appropriate user store for the auth configuration.
+pub fn create_user_store(config: &UserStoreConfig, session_ttl_hours: u64) -> Box<dyn UserStore> {
+    match config {
+        UserStoreConfig::Sqlite { db_path } => {
+            let expanded = AppConfig::expand_path(db_path);
+            Box::new(SqliteUserStore::new(&expanded, session_ttl_hours))
+        }
+        UserStoreConfig::Postgres { url } => {
+            Box::new(PostgresUserStore::new(url, session_ttl_hours))
+        }
+    }
 }
 
 /// Create a new alias on both the email provider and storage.
@@ -502,6 +519,7 @@ pub fn write_default_config(config_dir: &Path) -> Result<()> {
     let default_config = config::AppConfig {
         default_system: "default".to_string(),
         systems,
+        auth: None,
     };
 
     let toml_str = toml::to_string_pretty(&default_config)

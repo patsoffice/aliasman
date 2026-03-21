@@ -45,6 +45,33 @@ use crate::error::{Error, Result};
 pub struct AppConfig {
     pub default_system: String,
     pub systems: HashMap<String, SystemConfig>,
+    #[serde(default)]
+    pub auth: Option<AuthConfig>,
+}
+
+/// Authentication configuration.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AuthConfig {
+    /// User store backend configuration.
+    pub store: UserStoreConfig,
+    /// Session time-to-live in hours. Defaults to 24.
+    #[serde(default = "default_session_ttl_hours")]
+    pub session_ttl_hours: u64,
+}
+
+/// User store backend configuration.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "type")]
+pub enum UserStoreConfig {
+    #[serde(rename = "sqlite")]
+    Sqlite { db_path: String },
+
+    #[serde(rename = "postgres")]
+    Postgres { url: String },
+}
+
+fn default_session_ttl_hours() -> u64 {
+    24
 }
 
 /// A named system combining storage, email, and default values.
