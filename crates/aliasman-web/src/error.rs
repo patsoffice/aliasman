@@ -1,9 +1,12 @@
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};
 
+#[allow(dead_code)]
 pub enum AppError {
     Core(aliasman_core::error::Error),
     Internal(String),
+    /// Permission denied — used when auth checks fail on protected operations.
+    Unauthorized(String),
 }
 
 impl From<aliasman_core::error::Error> for AppError {
@@ -25,6 +28,10 @@ impl IntoResponse for AppError {
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("Internal error: {}", msg),
                 )
+            }
+            AppError::Unauthorized(msg) => {
+                tracing::warn!("Unauthorized: {}", msg);
+                (StatusCode::FORBIDDEN, format!("Permission denied: {}", msg))
             }
         };
 

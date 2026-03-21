@@ -1,15 +1,17 @@
 use askama::Template;
 use axum::extract::{Path, Query, State};
 use axum::http::{header, StatusCode};
-use axum::response::{Html, IntoResponse};
+use axum::response::{Html, IntoResponse, Redirect};
 use axum::routing::{get, post};
 use axum::{Form, Router};
+use axum_extra::extract::CookieJar;
 use rust_embed::Embed;
 use serde::Deserialize;
 
 use aliasman_core::build_alias;
 use aliasman_core::model::{Alias, AliasFilter};
 
+use crate::auth::{self, LoginForm, OptionalAuth, RequireAuth};
 use crate::error::AppError;
 use crate::state::SharedState;
 
@@ -106,6 +108,8 @@ struct IndexTemplate {
     hide_enabled: bool,
     alias_count: usize,
     suspended_count: usize,
+    auth_enabled: bool,
+    username: String,
 }
 
 #[derive(Template)]
@@ -157,10 +161,22 @@ struct EditFormTemplate {
     description: String,
 }
 
+#[derive(Template)]
+#[template(path = "login.html")]
+struct LoginTemplate {
+    error_message: String,
+}
+
 // -- Router --
 
 pub fn router(state: SharedState) -> Router {
     Router::new()
+        // Public routes
+        .route("/login", get(login_page_handler).post(login_submit_handler))
+        .route("/logout", post(logout_handler))
+        .route("/static/{*path}", get(static_handler))
+        .route("/health", get(health_handler))
+        // Protected routes (RequireAuth extractor handles redirect)
         .route("/", get(index_handler))
         .route("/aliases", get(aliases_handler))
         .route(
@@ -176,14 +192,67 @@ pub fn router(state: SharedState) -> Router {
         .route("/aliases/unsuspend", post(unsuspend_alias_handler))
         .route("/system", post(system_handler))
         .route("/refresh", get(refresh_handler))
-        .route("/static/{*path}", get(static_handler))
-        .route("/health", get(health_handler))
         .with_state(state)
 }
 
-// -- Handlers --
+// -- Auth Handlers --
 
-async fn index_handler(State(state): State<SharedState>) -> Result<Html<String>, AppError> {
+async fn login_page_handler(
+    State(state): State<SharedState>,
+    auth: OptionalAuth,
+) -> impl IntoResponse {
+    // If already authenticated, redirect to home
+    if auth.0.is_some() {
+        return Redirect::to("/").into_response();
+    }
+
+    // If auth is not configured, redirect to home (no login needed)
+    if !state.auth_enabled() {
+        return Redirect::to("/").into_response();
+    }
+
+    let template = LoginTemplate {
+        error_message: String::new(),
+    };
+    Html(
+        template
+            .render()
+            .unwrap_or_else(|e| format!("template error: {}", e)),
+    )
+    .into_response()
+}
+
+async fn login_submit_handler(
+    State(state): State<SharedState>,
+    jar: CookieJar,
+    Form(form): Form<LoginForm>,
+) -> impl IntoResponse {
+    match auth::login_handler(state, jar, form).await {
+        Ok((jar, redirect)) => (jar, redirect).into_response(),
+        Err((_status, message)) => {
+            let template = LoginTemplate {
+                error_message: message,
+            };
+            Html(
+                template
+                    .render()
+                    .unwrap_or_else(|e| format!("template error: {}", e)),
+            )
+            .into_response()
+        }
+    }
+}
+
+async fn logout_handler(State(state): State<SharedState>, jar: CookieJar) -> impl IntoResponse {
+    auth::logout_handler(state, jar).await
+}
+
+// -- Protected Handlers --
+
+async fn index_handler(
+    State(state): State<SharedState>,
+    auth: RequireAuth,
+) -> Result<Html<String>, AppError> {
     let filter = AliasFilter::default();
     let aliases: Vec<AliasView> = state
         .list_aliases(&filter)
@@ -203,6 +272,8 @@ async fn index_handler(State(state): State<SharedState>) -> Result<Html<String>,
         hide_enabled: false,
         alias_count,
         suspended_count,
+        auth_enabled: state.auth_enabled(),
+        username: auth.session().username.clone(),
     };
 
     Ok(Html(template.render().map_err(|e| {
@@ -212,6 +283,7 @@ async fn index_handler(State(state): State<SharedState>) -> Result<Html<String>,
 
 async fn aliases_handler(
     State(state): State<SharedState>,
+    _auth: RequireAuth,
     Query(query): Query<AliasQuery>,
 ) -> Result<Html<String>, AppError> {
     let filter = query_to_filter(&query);
@@ -237,6 +309,7 @@ async fn aliases_handler(
 
 async fn system_handler(
     State(state): State<SharedState>,
+    _auth: RequireAuth,
     Form(form): Form<SystemForm>,
 ) -> Result<Html<String>, AppError> {
     state.switch_system(&form.system).await?;
@@ -267,6 +340,7 @@ async fn system_handler(
 
 async fn refresh_handler(
     State(state): State<SharedState>,
+    _auth: RequireAuth,
     Query(query): Query<AliasQuery>,
 ) -> Result<Html<String>, AppError> {
     state.refresh_active_system().await?;
@@ -292,7 +366,10 @@ async fn refresh_handler(
     })?))
 }
 
-async fn create_form_handler(State(state): State<SharedState>) -> Result<Html<String>, AppError> {
+async fn create_form_handler(
+    State(state): State<SharedState>,
+    _auth: RequireAuth,
+) -> Result<Html<String>, AppError> {
     let default_domain = state.active_default_domain().await.unwrap_or_default();
     let default_addresses = state
         .active_default_addresses()
@@ -312,6 +389,7 @@ async fn create_form_handler(State(state): State<SharedState>) -> Result<Html<St
 
 async fn create_alias_handler(
     State(state): State<SharedState>,
+    _auth: RequireAuth,
     Form(form): Form<CreateAliasForm>,
 ) -> Result<impl IntoResponse, AppError> {
     let addresses: Vec<String> = form
@@ -349,6 +427,7 @@ async fn create_alias_handler(
 
 async fn edit_form_handler(
     State(state): State<SharedState>,
+    _auth: RequireAuth,
     Query(form): Query<AliasActionForm>,
 ) -> Result<Html<String>, AppError> {
     let filter = AliasFilter::default();
@@ -374,6 +453,7 @@ async fn edit_form_handler(
 
 async fn edit_alias_handler(
     State(state): State<SharedState>,
+    _auth: RequireAuth,
     Form(form): Form<EditAliasForm>,
 ) -> Result<impl IntoResponse, AppError> {
     let addresses: Vec<String> = form
@@ -400,6 +480,7 @@ async fn edit_alias_handler(
 
 async fn delete_alias_handler(
     State(state): State<SharedState>,
+    _auth: RequireAuth,
     Form(form): Form<AliasActionForm>,
 ) -> Result<impl IntoResponse, AppError> {
     alias_action_response(
@@ -410,6 +491,7 @@ async fn delete_alias_handler(
 
 async fn suspend_alias_handler(
     State(state): State<SharedState>,
+    _auth: RequireAuth,
     Form(form): Form<AliasActionForm>,
 ) -> Result<impl IntoResponse, AppError> {
     alias_action_response(
@@ -420,6 +502,7 @@ async fn suspend_alias_handler(
 
 async fn unsuspend_alias_handler(
     State(state): State<SharedState>,
+    _auth: RequireAuth,
     Form(form): Form<AliasActionForm>,
 ) -> Result<impl IntoResponse, AppError> {
     alias_action_response(

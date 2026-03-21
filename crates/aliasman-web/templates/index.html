@@ -18,6 +18,17 @@
         {% endfor %}
     </select>
 </div>
+{% if auth_enabled %}
+<div class="flex items-center gap-2">
+    <span class="text-sm text-gray-500 dark:text-gray-400">{{ username }}</span>
+    <form method="POST" action="/logout" class="inline">
+        <button type="submit"
+                class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline">
+            Sign out
+        </button>
+    </form>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block content %}

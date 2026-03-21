@@ -2,11 +2,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use aliasman_core::auth::UserStore;
 use aliasman_core::config::AppConfig;
 use aliasman_core::error::Result as CoreResult;
 use aliasman_core::model::{Alias, AliasFilter};
 use aliasman_core::storage::StorageProvider;
-use aliasman_core::{create_email_provider, create_storage_provider};
+use aliasman_core::{create_email_provider, create_storage_provider, create_user_store};
 
 pub type SharedState = Arc<AppState>;
 
@@ -14,6 +15,7 @@ pub struct AppState {
     config: AppConfig,
     systems: RwLock<HashMap<String, Box<dyn StorageProvider>>>,
     active_system: RwLock<String>,
+    user_store: Option<Box<dyn UserStore>>,
 }
 
 impl AppState {
@@ -27,11 +29,43 @@ impl AppState {
         let mut systems = HashMap::new();
         systems.insert(default_system.clone(), storage);
 
+        // Open user store if auth is configured
+        let user_store = if let Some(ref auth_config) = config.auth {
+            let mut store = create_user_store(&auth_config.store, auth_config.session_ttl_hours);
+            store.open().await.map_err(|e| {
+                aliasman_core::error::Error::Config(format!("failed to open user store: {}", e))
+            })?;
+
+            let users = store.list_users().await.map_err(|e| {
+                aliasman_core::error::Error::Config(format!("failed to list users: {}", e))
+            })?;
+            if users.is_empty() {
+                tracing::warn!(
+                    "Auth enabled but no users found. Use `aliasman user create --superuser` to create an admin."
+                );
+            }
+
+            Some(store)
+        } else {
+            None
+        };
+
         Ok(Arc::new(Self {
             config,
             systems: RwLock::new(systems),
             active_system: RwLock::new(default_system),
+            user_store,
         }))
+    }
+
+    /// Returns a reference to the user store, if auth is configured.
+    pub fn user_store(&self) -> Option<&dyn UserStore> {
+        self.user_store.as_deref()
+    }
+
+    /// Returns true if auth is configured.
+    pub fn auth_enabled(&self) -> bool {
+        self.user_store.is_some()
     }
 
     pub async fn active_system_name(&self) -> String {
