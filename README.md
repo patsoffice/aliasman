@@ -496,7 +496,42 @@ When `[auth]` is configured, the web frontend enforces authentication and author
 - **No-auth mode** — When the `[auth]` section is absent, authentication is not enforced
   and all visitors have full access (same behavior as before).
 
-Options:
+#### Theming and Branding
+
+The web UI supports color themes and custom branding. Add a `[web]` section to your
+`config.toml` to select a named theme preset:
+
+```toml
+[web]
+theme = "blue"   # "blue" (default), "green", "purple", "rose", "amber"
+```
+
+For fine-grained control, override individual colors on top of any preset:
+
+```toml
+[web]
+theme = "purple"
+
+[web.colors]
+primary = "#6d28d9"
+primary_hover = "#5b21b6"
+accent = "#8b5cf6"
+accent_hover = "#a78bfa"
+```
+
+To add a custom logo or navigation bar background image, place files in the
+`branding/` subdirectory of your config directory (e.g.
+`~/.config/aliasman/branding/`). Files are auto-detected by name:
+
+- **Logo** — `logo.png`, `logo.svg`, or `logo.jpg` — replaces the "Aliasman"
+  text in the navigation bar
+- **Header background** — `header.png`, `header.jpg`, or `header.svg` — used as
+  a background image behind the navigation bar
+
+No configuration is needed — just drop the files in place and restart the web
+server.
+
+#### Options
 
 ```sh
 # Custom config directory

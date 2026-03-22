@@ -47,6 +47,8 @@ pub struct AppConfig {
     pub systems: HashMap<String, SystemConfig>,
     #[serde(default)]
     pub auth: Option<AuthConfig>,
+    #[serde(default)]
+    pub web: WebConfig,
 }
 
 /// Authentication configuration.
@@ -72,6 +74,43 @@ pub enum UserStoreConfig {
 
 fn default_session_ttl_hours() -> u64 {
     24
+}
+
+/// Web UI configuration for theming and branding.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct WebConfig {
+    /// Named theme preset: "blue" (default), "green", "purple", "rose", "amber".
+    #[serde(default = "default_theme")]
+    pub theme: String,
+    /// Optional per-color overrides applied on top of the selected preset.
+    #[serde(default)]
+    pub colors: Option<ThemeColorOverrides>,
+}
+
+impl Default for WebConfig {
+    fn default() -> Self {
+        Self {
+            theme: default_theme(),
+            colors: None,
+        }
+    }
+}
+
+/// Optional color overrides for fine-tuning a theme preset.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ThemeColorOverrides {
+    #[serde(default)]
+    pub primary: Option<String>,
+    #[serde(default)]
+    pub primary_hover: Option<String>,
+    #[serde(default)]
+    pub accent: Option<String>,
+    #[serde(default)]
+    pub accent_hover: Option<String>,
+}
+
+fn default_theme() -> String {
+    "blue".to_string()
 }
 
 /// A named system combining storage, email, and default values.
@@ -393,5 +432,54 @@ secret_key = "secret"
             }
             _ => panic!("expected S3 storage"),
         }
+    }
+
+    #[test]
+    fn test_deserialize_web_config() {
+        let toml = r##"
+default_system = "home"
+
+[systems.home.storage]
+type = "sqlite"
+db_path = "/tmp/test.db"
+
+[systems.home.email]
+type = "rackspace"
+user_key = "k"
+secret_key = "s"
+
+[web]
+theme = "purple"
+
+[web.colors]
+primary = "#7c3aed"
+accent = "#8b5cf6"
+"##;
+        let config: AppConfig = toml::from_str(toml).unwrap();
+        assert_eq!(config.web.theme, "purple");
+        let colors = config.web.colors.unwrap();
+        assert_eq!(colors.primary.as_deref(), Some("#7c3aed"));
+        assert_eq!(colors.accent.as_deref(), Some("#8b5cf6"));
+        assert!(colors.primary_hover.is_none());
+        assert!(colors.accent_hover.is_none());
+    }
+
+    #[test]
+    fn test_deserialize_without_web_config() {
+        let toml = r#"
+default_system = "home"
+
+[systems.home.storage]
+type = "sqlite"
+db_path = "/tmp/test.db"
+
+[systems.home.email]
+type = "rackspace"
+user_key = "k"
+secret_key = "s"
+"#;
+        let config: AppConfig = toml::from_str(toml).unwrap();
+        assert_eq!(config.web.theme, "blue");
+        assert!(config.web.colors.is_none());
     }
 }

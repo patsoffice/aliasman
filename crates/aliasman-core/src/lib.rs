@@ -520,6 +520,7 @@ pub fn write_default_config(config_dir: &Path) -> Result<()> {
         default_system: "default".to_string(),
         systems,
         auth: None,
+        web: Default::default(),
     };
 
     let toml_str = toml::to_string_pretty(&default_config)
