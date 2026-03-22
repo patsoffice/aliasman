@@ -43,8 +43,11 @@ aliasman/
 │       │   ├── routes.rs         # HTTP handlers and Askama templates
 │       │   ├── state.rs          # Shared application state
 │       │   ├── error.rs          # Web error type
-│       │   └── auth.rs           # Auth/RBAC stubs (future)
+│       │   └── auth.rs           # Session auth extractors, login/logout
 │       ├── templates/            # Askama HTML templates
+│       │   ├── login.html        # Login page
+│       │   ├── admin.html        # User/permission admin page
+│       │   └── partials/         # HTMX partial templates
 │       └── static/               # Embedded static assets (htmx.min.js)
 ```
 
@@ -480,6 +483,19 @@ This starts the web UI at `http://127.0.0.1:3000` using your existing
 - Hide suspended / hide enabled toggles
 - Manual refresh button and automatic 60-second polling
 
+When `[auth]` is configured, the web frontend enforces authentication and authorization:
+
+- **Login flow** — Session-cookie-based authentication with a login page. Unauthenticated
+  requests redirect to `/login`. Username is shown in the nav bar with a sign-out link.
+- **Permission enforcement** — Mutation routes (create, edit, delete, suspend, unsuspend)
+  check per-domain permissions against the logged-in user. Read-only routes require
+  authentication but not granular permissions. Denied requests return HTTP 403.
+- **Admin UI** — Superusers see a "Users" link in the nav bar leading to `/admin/users`,
+  which provides HTMX-powered user management: create/delete users, view and inline
+  grant/revoke permissions. Non-superusers receive HTTP 403 on admin routes.
+- **No-auth mode** — When the `[auth]` section is absent, authentication is not enforced
+  and all visitors have full access (same behavior as before).
+
 Options:
 
 ```sh
@@ -563,4 +579,3 @@ git push --tags
 
 - **Additional CLI commands** — sync, sync-from-email
 - **Additional providers** — files storage, Google Workspace email
-- **Web authentication integration** — Login flow and middleware to enforce access controls in the web frontend (user store and CLI management are implemented)
