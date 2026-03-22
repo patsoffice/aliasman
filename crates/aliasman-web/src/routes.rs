@@ -8,7 +8,7 @@ use axum_extra::extract::CookieJar;
 use rust_embed::Embed;
 use serde::Deserialize;
 
-use aliasman_core::auth::Action;
+use aliasman_core::auth::{Action, NewUser, Permission, ResourceType, Session};
 use aliasman_core::build_alias;
 use aliasman_core::model::{Alias, AliasFilter};
 
@@ -97,6 +97,43 @@ pub struct EditAliasForm {
     pub description: String,
 }
 
+// -- Admin View Models --
+
+pub struct UserView {
+    pub id: String,
+    pub username: String,
+    pub is_superuser: bool,
+    pub permissions: Vec<PermissionView>,
+}
+
+pub struct PermissionView {
+    pub action: String,
+    pub resource_type: String,
+    pub resource_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateUserForm {
+    pub username: String,
+    pub password: String,
+    #[serde(default)]
+    pub is_superuser: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GrantPermissionForm {
+    pub resource_type: String,
+    pub resource_id: String,
+    #[serde(default)]
+    pub actions: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RevokePermissionForm {
+    pub resource_type: String,
+    pub resource_id: String,
+}
+
 // -- Templates --
 
 #[derive(Template)]
@@ -110,6 +147,7 @@ struct IndexTemplate {
     alias_count: usize,
     suspended_count: usize,
     auth_enabled: bool,
+    is_superuser: bool,
     username: String,
 }
 
@@ -168,6 +206,31 @@ struct LoginTemplate {
     error_message: String,
 }
 
+#[derive(Template)]
+#[template(path = "admin.html")]
+struct AdminTemplate {
+    users: Vec<UserView>,
+    username: String,
+}
+
+#[derive(Template)]
+#[template(path = "partials/admin_user_rows.html")]
+struct AdminUserRowsTemplate {
+    users: Vec<UserView>,
+}
+
+#[derive(Template)]
+#[template(path = "partials/admin_create_user.html")]
+struct AdminCreateUserTemplate;
+
+#[derive(Template)]
+#[template(path = "partials/admin_permissions.html")]
+struct AdminPermissionsTemplate {
+    user_id: String,
+    username: String,
+    permissions: Vec<PermissionView>,
+}
+
 // -- Router --
 
 pub fn router(state: SharedState) -> Router {
@@ -193,6 +256,27 @@ pub fn router(state: SharedState) -> Router {
         .route("/aliases/unsuspend", post(unsuspend_alias_handler))
         .route("/system", post(system_handler))
         .route("/refresh", get(refresh_handler))
+        // Admin routes (superuser only)
+        .route("/admin/users", get(admin_users_handler))
+        .route("/admin/users/rows", get(admin_users_rows_handler))
+        .route("/admin/users/create", get(admin_create_user_form_handler))
+        .route("/admin/users", post(admin_create_user_handler))
+        .route(
+            "/admin/users/{user_id}/delete",
+            post(admin_delete_user_handler),
+        )
+        .route(
+            "/admin/users/{user_id}/permissions",
+            get(admin_permissions_handler),
+        )
+        .route(
+            "/admin/users/{user_id}/permissions/grant",
+            post(admin_grant_handler),
+        )
+        .route(
+            "/admin/users/{user_id}/permissions/revoke",
+            post(admin_revoke_handler),
+        )
         .with_state(state)
 }
 
@@ -274,6 +358,7 @@ async fn index_handler(
         alias_count,
         suspended_count,
         auth_enabled: state.auth_enabled(),
+        is_superuser: auth.session().is_superuser,
         username: auth.session().username.clone(),
     };
 
@@ -593,6 +678,283 @@ fn alias_action_response(
             .insert("HX-Trigger", "alias-changed".parse().unwrap());
     }
     Ok(response)
+}
+
+// -- Admin Handlers --
+
+fn require_superuser(session: &Session) -> Result<(), AppError> {
+    if session.is_superuser {
+        Ok(())
+    } else {
+        Err(AppError::Unauthorized(
+            "superuser access required".to_string(),
+        ))
+    }
+}
+
+async fn load_user_views(state: &SharedState) -> Result<Vec<UserView>, AppError> {
+    let store = state
+        .user_store()
+        .ok_or_else(|| AppError::Internal("auth not configured".to_string()))?;
+
+    let users = store
+        .list_users()
+        .await
+        .map_err(|e| AppError::Internal(format!("failed to list users: {}", e)))?;
+
+    let mut views = Vec::new();
+    for user in users {
+        let perms = store
+            .get_permissions(&user.id)
+            .await
+            .map_err(|e| AppError::Internal(format!("failed to get permissions: {}", e)))?;
+
+        let perm_views: Vec<PermissionView> = perms
+            .iter()
+            .map(|p| PermissionView {
+                action: p.action.as_str().to_string(),
+                resource_type: p.resource_type.as_str().to_string(),
+                resource_id: p.resource_id.clone().unwrap_or_else(|| "*".to_string()),
+            })
+            .collect();
+
+        views.push(UserView {
+            id: user.id,
+            username: user.username,
+            is_superuser: user.is_superuser,
+            permissions: perm_views,
+        });
+    }
+    Ok(views)
+}
+
+async fn admin_users_handler(
+    State(state): State<SharedState>,
+    auth: RequireAuth,
+) -> Result<Html<String>, AppError> {
+    require_superuser(auth.session())?;
+    let users = load_user_views(&state).await?;
+
+    let template = AdminTemplate {
+        users,
+        username: auth.session().username.clone(),
+    };
+    Ok(Html(template.render().map_err(|e| {
+        AppError::Internal(format!("template render error: {}", e))
+    })?))
+}
+
+async fn admin_users_rows_handler(
+    State(state): State<SharedState>,
+    auth: RequireAuth,
+) -> Result<Html<String>, AppError> {
+    require_superuser(auth.session())?;
+    let users = load_user_views(&state).await?;
+
+    let template = AdminUserRowsTemplate { users };
+    Ok(Html(template.render().map_err(|e| {
+        AppError::Internal(format!("template render error: {}", e))
+    })?))
+}
+
+async fn admin_create_user_form_handler(auth: RequireAuth) -> Result<Html<String>, AppError> {
+    require_superuser(auth.session())?;
+    let template = AdminCreateUserTemplate;
+    Ok(Html(template.render().map_err(|e| {
+        AppError::Internal(format!("template render error: {}", e))
+    })?))
+}
+
+async fn admin_create_user_handler(
+    State(state): State<SharedState>,
+    auth: RequireAuth,
+    Form(form): Form<CreateUserForm>,
+) -> Result<impl IntoResponse, AppError> {
+    require_superuser(auth.session())?;
+
+    let store = state
+        .user_store()
+        .ok_or_else(|| AppError::Internal("auth not configured".to_string()))?;
+
+    let new_user = NewUser {
+        username: form.username.trim().to_string(),
+        password: form.password,
+        is_superuser: form.is_superuser.as_deref() == Some("true"),
+    };
+
+    let (success, message) = match store.create_user(&new_user).await {
+        Ok(user) => (true, format!("Created user '{}'", user.username)),
+        Err(e) => (false, format!("{}", e)),
+    };
+
+    let template = ActionResultTemplate { success, message };
+    let html = template
+        .render()
+        .map_err(|e| AppError::Internal(format!("template render error: {}", e)))?;
+
+    let mut response = Html(html).into_response();
+    if success {
+        response
+            .headers_mut()
+            .insert("HX-Trigger", "user-changed".parse().unwrap());
+    }
+    Ok(response)
+}
+
+async fn admin_delete_user_handler(
+    State(state): State<SharedState>,
+    auth: RequireAuth,
+    Path(user_id): Path<String>,
+) -> Result<impl IntoResponse, AppError> {
+    require_superuser(auth.session())?;
+
+    let store = state
+        .user_store()
+        .ok_or_else(|| AppError::Internal("auth not configured".to_string()))?;
+
+    // Look up the user to get username for the message and prevent self-deletion
+    let user = store
+        .get_user(&user_id)
+        .await
+        .map_err(|e| AppError::Internal(format!("{}", e)))?
+        .ok_or_else(|| AppError::Internal("user not found".to_string()))?;
+
+    if user.id == auth.session().user_id {
+        return alias_action_response(
+            Err(aliasman_core::error::Error::InvalidInput(
+                "cannot delete yourself".to_string(),
+            )),
+            String::new(),
+        );
+    }
+
+    let (success, message) = match store.delete_user(&user.username).await {
+        Ok(()) => (true, format!("Deleted user '{}'", user.username)),
+        Err(e) => (false, format!("{}", e)),
+    };
+
+    let template = ActionResultTemplate { success, message };
+    let html = template
+        .render()
+        .map_err(|e| AppError::Internal(format!("template render error: {}", e)))?;
+
+    let mut response = Html(html).into_response();
+    if success {
+        response
+            .headers_mut()
+            .insert("HX-Trigger", "user-changed".parse().unwrap());
+    }
+    Ok(response)
+}
+
+async fn admin_permissions_handler(
+    State(state): State<SharedState>,
+    auth: RequireAuth,
+    Path(user_id): Path<String>,
+) -> Result<Html<String>, AppError> {
+    require_superuser(auth.session())?;
+
+    let store = state
+        .user_store()
+        .ok_or_else(|| AppError::Internal("auth not configured".to_string()))?;
+
+    let user = store
+        .get_user(&user_id)
+        .await
+        .map_err(|e| AppError::Internal(format!("{}", e)))?
+        .ok_or_else(|| AppError::Internal("user not found".to_string()))?;
+
+    let perms = store
+        .get_permissions(&user_id)
+        .await
+        .map_err(|e| AppError::Internal(format!("{}", e)))?;
+
+    let permissions: Vec<PermissionView> = perms
+        .iter()
+        .map(|p| PermissionView {
+            action: p.action.as_str().to_string(),
+            resource_type: p.resource_type.as_str().to_string(),
+            resource_id: p.resource_id.clone().unwrap_or_else(|| "*".to_string()),
+        })
+        .collect();
+
+    let template = AdminPermissionsTemplate {
+        user_id,
+        username: user.username,
+        permissions,
+    };
+    Ok(Html(template.render().map_err(|e| {
+        AppError::Internal(format!("template render error: {}", e))
+    })?))
+}
+
+async fn admin_grant_handler(
+    State(state): State<SharedState>,
+    auth: RequireAuth,
+    Path(user_id): Path<String>,
+    Form(form): Form<GrantPermissionForm>,
+) -> Result<Html<String>, AppError> {
+    require_superuser(auth.session())?;
+
+    let store = state
+        .user_store()
+        .ok_or_else(|| AppError::Internal("auth not configured".to_string()))?;
+
+    let resource_type = ResourceType::parse(&form.resource_type)
+        .map_err(|e| AppError::Internal(format!("{}", e)))?;
+
+    let actions: Vec<Action> = if form.actions.trim().is_empty() {
+        Action::all().to_vec()
+    } else {
+        form.actions
+            .split(',')
+            .map(|s| Action::parse(s.trim()))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| AppError::Internal(format!("{}", e)))?
+    };
+
+    let permissions: Vec<Permission> = actions
+        .iter()
+        .map(|action| Permission {
+            id: String::new(),
+            user_id: user_id.clone(),
+            action: action.clone(),
+            resource_type: resource_type.clone(),
+            resource_id: Some(form.resource_id.trim().to_string()),
+        })
+        .collect();
+
+    store
+        .set_permissions(&user_id, &permissions)
+        .await
+        .map_err(|e| AppError::Internal(format!("{}", e)))?;
+
+    // Re-render the permissions form
+    admin_permissions_handler(State(state), auth, Path(user_id)).await
+}
+
+async fn admin_revoke_handler(
+    State(state): State<SharedState>,
+    auth: RequireAuth,
+    Path(user_id): Path<String>,
+    Form(form): Form<RevokePermissionForm>,
+) -> Result<Html<String>, AppError> {
+    require_superuser(auth.session())?;
+
+    let store = state
+        .user_store()
+        .ok_or_else(|| AppError::Internal("auth not configured".to_string()))?;
+
+    let resource_type = ResourceType::parse(&form.resource_type)
+        .map_err(|e| AppError::Internal(format!("{}", e)))?;
+
+    store
+        .clear_permissions(&user_id, &resource_type, &form.resource_id)
+        .await
+        .map_err(|e| AppError::Internal(format!("{}", e)))?;
+
+    // Re-render the permissions form
+    admin_permissions_handler(State(state), auth, Path(user_id)).await
 }
 
 async fn static_handler(Path(path): Path<String>) -> impl IntoResponse {

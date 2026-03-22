@@ -1,0 +1,46 @@
+{% for user in users %}
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+    <td class="px-4 py-2 text-sm font-medium dark:text-gray-200">{{ user.username }}</td>
+    <td class="px-4 py-2 text-sm">
+        {% if user.is_superuser %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300">Superuser</span>
+        {% else %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300">User</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-2 text-sm dark:text-gray-300">
+        {% if user.is_superuser %}
+        <span class="text-gray-400 dark:text-gray-500 italic">all (superuser)</span>
+        {% else if user.permissions.is_empty() %}
+        <span class="text-gray-400 dark:text-gray-500 italic">none</span>
+        {% else %}
+        <div class="flex flex-wrap gap-1">
+            {% for perm in user.permissions %}
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                {{ perm.action }}/{{ perm.resource_type }}:{{ perm.resource_id }}
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </td>
+    <td class="px-4 py-2 text-sm whitespace-nowrap">
+        <div class="flex gap-2">
+            <button hx-get="/admin/users/{{ user.id }}/permissions"
+                    hx-target="#admin-form-container"
+                    hx-swap="innerHTML show:#admin-form-container:top"
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline">Permissions</button>
+            <form hx-post="/admin/users/{{ user.id }}/delete"
+                  hx-target="#admin-result"
+                  hx-swap="innerHTML"
+                  hx-confirm="Delete user '{{ user.username }}'? This cannot be undone.">
+                <button type="submit" class="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline">Delete</button>
+            </form>
+        </div>
+    </td>
+</tr>
+{% endfor %}
+{% if users.is_empty() %}
+<tr>
+    <td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No users found.</td>
+</tr>
+{% endif %}

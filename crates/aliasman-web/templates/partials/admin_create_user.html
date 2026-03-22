@@ -1,0 +1,36 @@
+<div id="admin-create-form" class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Create User</h3>
+    <form hx-post="/admin/users"
+          hx-target="#admin-result"
+          hx-swap="innerHTML"
+          class="flex flex-wrap items-end gap-3">
+        <div>
+            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Username</label>
+            <input type="text" name="username" required
+                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-40 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="username">
+        </div>
+        <div>
+            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Password</label>
+            <input type="password" name="password" required
+                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-48 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="password">
+        </div>
+        <div>
+            <label class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
+                <input type="checkbox" name="is_superuser" value="true"
+                       class="rounded border-gray-300 dark:border-gray-600">
+                Superuser
+            </label>
+        </div>
+        <button type="submit"
+                class="px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            Create
+        </button>
+        <button type="button"
+                onclick="this.closest('#admin-create-form').remove()"
+                class="px-4 py-1.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+            Cancel
+        </button>
+    </form>
+</div>
