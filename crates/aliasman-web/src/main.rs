@@ -2,6 +2,7 @@ mod auth;
 mod error;
 mod routes;
 mod state;
+pub(crate) mod theme;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
