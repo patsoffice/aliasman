@@ -8,7 +8,7 @@
             <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Alias</label>
             <div class="flex gap-1">
                 <input type="text" name="alias" id="create-alias-name" required
-                       class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-40 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-40 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-accent"
                        placeholder="alias name">
                 <button type="button"
                         onclick="var len=parseInt(document.getElementById('random-length').value)||16;len=Math.min(len,32);var a=new Uint8Array(Math.ceil(len/2));crypto.getRandomValues(a);document.getElementById('create-alias-name').value=Array.from(a,function(b){return b.toString(16).padStart(2,'0')}).join('').slice(0,len)"
@@ -17,30 +17,30 @@
                     Random
                 </button>
                 <input type="number" id="random-length" value="16" min="1" max="32"
-                       class="border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm w-14 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm w-14 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-accent"
                        title="Random alias length">
             </div>
         </div>
         <div>
             <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Domain</label>
             <input type="text" name="domain" required value="{{ default_domain }}"
-                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-48 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-48 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-accent"
                    placeholder="example.com">
         </div>
         <div>
             <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Email Address(es)</label>
             <input type="text" name="email_addresses" required value="{{ default_addresses }}"
-                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-64 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-64 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-accent"
                    placeholder="user@example.com, other@example.com">
         </div>
         <div>
             <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Description</label>
             <input type="text" name="description"
-                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-48 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-48 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-accent"
                    placeholder="optional">
         </div>
         <button type="submit"
-                class="px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-accent">
             Create
         </button>
         <button type="button"

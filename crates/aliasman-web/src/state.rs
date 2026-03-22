@@ -10,9 +10,7 @@ use aliasman_core::model::{Alias, AliasFilter};
 use aliasman_core::storage::StorageProvider;
 use aliasman_core::{create_email_provider, create_storage_provider, create_user_store};
 
-use crate::theme::{
-    detect_branding, resolve_theme, BrandingAssets, ThemeColors, ThemeContext,
-};
+use crate::theme::{detect_branding, resolve_theme, BrandingAssets, ThemeColors, ThemeContext};
 
 pub type SharedState = Arc<AppState>;
 

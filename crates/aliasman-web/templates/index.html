@@ -21,7 +21,7 @@
 {% if auth_enabled %}
 <div class="flex items-center gap-2">
     {% if is_superuser %}
-    <a href="/admin/users" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline">Users</a>
+    <a href="/admin/users" class="text-sm text-primary hover:text-primary-hover underline">Users</a>
     {% endif %}
     <span class="text-sm text-gray-500 dark:text-gray-400">{{ username }}</span>
     <form method="POST" action="/logout" class="inline">

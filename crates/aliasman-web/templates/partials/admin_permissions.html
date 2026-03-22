@@ -38,7 +38,7 @@
         <div>
             <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Type</label>
             <select name="resource_type"
-                    class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-accent">
                 <option value="system">System</option>
                 <option value="domain">Domain</option>
             </select>
@@ -46,17 +46,17 @@
         <div>
             <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Name</label>
             <input type="text" name="resource_id" required
-                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-48 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-48 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-accent"
                    placeholder="system or domain name">
         </div>
         <div>
             <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Actions (comma-separated, blank = all)</label>
             <input type="text" name="actions"
-                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-64 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm w-64 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-accent"
                    placeholder="view,create,delete,suspend,unsuspend">
         </div>
         <button type="submit"
-                class="px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-accent">
             Grant
         </button>
         <button type="button"

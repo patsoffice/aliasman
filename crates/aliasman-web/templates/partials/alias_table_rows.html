@@ -17,7 +17,7 @@
             <button hx-get="/aliases/edit?alias={{ alias.alias }}&domain={{ alias.domain }}"
                     hx-target="#create-form-container"
                     hx-swap="innerHTML show:#create-form-container:top"
-                    class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline">Edit</button>
+                    class="text-xs text-primary hover:text-primary-hover underline">Edit</button>
             {% if alias.suspended %}
             <form hx-post="/aliases/unsuspend" hx-target="#action-result" hx-swap="innerHTML">
                 <input type="hidden" name="alias" value="{{ alias.alias }}">

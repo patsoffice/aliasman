@@ -984,10 +984,7 @@ async fn branding_handler(
                 StatusCode::OK,
                 [
                     (header::CONTENT_TYPE, branding_file.mime.clone()),
-                    (
-                        header::CACHE_CONTROL,
-                        "public, max-age=3600".to_string(),
-                    ),
+                    (header::CACHE_CONTROL, "public, max-age=3600".to_string()),
                 ],
                 data,
             )

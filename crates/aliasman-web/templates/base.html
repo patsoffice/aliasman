@@ -7,8 +7,34 @@
     <script src="/static/htmx.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { darkMode: 'class' }
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--color-primary)',
+                        'primary-hover': 'var(--color-primary-hover)',
+                        accent: 'var(--color-accent)',
+                        'accent-hover': 'var(--color-accent-hover)',
+                    }
+                }
+            }
+        }
     </script>
+    <style>
+        :root {
+            --color-primary: {{ theme.primary }};
+            --color-primary-hover: {{ theme.primary_hover }};
+            --color-accent: {{ theme.accent }};
+            --color-accent-hover: {{ theme.accent_hover }};
+        }
+        html.dark {
+            --color-primary: {{ theme.dark_primary }};
+            --color-primary-hover: {{ theme.dark_primary_hover }};
+            --color-accent: {{ theme.dark_accent }};
+            --color-accent-hover: {{ theme.dark_accent_hover }};
+        }
+    </style>
     <script>
         (function() {
             var theme = localStorage.getItem('theme');
@@ -19,13 +45,18 @@
     </script>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors">
-    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700"{% match theme.header_url %}{% when Some with (url) %} style="background-image: url('{{ url }}'); background-size: cover; background-position: center;"{% when None %}{% endmatch %}>
         <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            {% match theme.logo_url %}
+            {% when Some with (url) %}
+            <a href="/"><img src="{{ url }}" alt="Aliasman" class="h-8"></a>
+            {% when None %}
             <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Aliasman</h1>
+            {% endmatch %}
             <div class="flex items-center gap-4">
                 {% block nav_right %}{% endblock %}
                 <button id="theme-toggle" onclick="toggleTheme()"
-                        class="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-accent"
                         title="Toggle dark mode">
                     <svg id="theme-icon-light" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"/>

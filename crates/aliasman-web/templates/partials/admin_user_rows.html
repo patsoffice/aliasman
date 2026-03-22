@@ -16,7 +16,7 @@
         {% else %}
         <div class="flex flex-wrap gap-1">
             {% for perm in user.permissions %}
-            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-primary/10 dark:bg-primary/20 text-primary">
                 {{ perm.action }}/{{ perm.resource_type }}:{{ perm.resource_id }}
             </span>
             {% endfor %}
@@ -28,7 +28,7 @@
             <button hx-get="/admin/users/{{ user.id }}/permissions"
                     hx-target="#admin-form-container"
                     hx-swap="innerHTML show:#admin-form-container:top"
-                    class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline">Permissions</button>
+                    class="text-xs text-primary hover:text-primary-hover underline">Permissions</button>
             <form hx-post="/admin/users/{{ user.id }}/delete"
                   hx-target="#admin-result"
                   hx-swap="innerHTML"
