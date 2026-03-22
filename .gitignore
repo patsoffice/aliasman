@@ -21,3 +21,5 @@ Thumbs.db
 
 # Cargo lock is committed for binaries, but ignore debug artifacts
 **/*.rs.bk
+
+.beads/.br_recovery/**

@@ -68,6 +68,51 @@ impl AppState {
         self.user_store.is_some()
     }
 
+    /// Check if a user has permission for an action on the active system.
+    /// Returns Ok(true) if allowed, Ok(false) if denied.
+    /// When auth is not configured, always returns true.
+    pub async fn check_permission(
+        &self,
+        session: &aliasman_core::auth::Session,
+        action: &aliasman_core::auth::Action,
+        domain: &str,
+    ) -> bool {
+        // Superusers always have access
+        if session.is_superuser {
+            return true;
+        }
+
+        let Some(store) = self.user_store() else {
+            return true;
+        };
+
+        let active = self.active_system.read().await.clone();
+
+        // Check system-level permission first
+        if let Ok(true) = store
+            .check_permission(
+                &session.user_id,
+                action,
+                &aliasman_core::auth::ResourceType::System,
+                &active,
+            )
+            .await
+        {
+            return true;
+        }
+
+        // Check domain-level permission
+        store
+            .check_permission(
+                &session.user_id,
+                action,
+                &aliasman_core::auth::ResourceType::Domain,
+                domain,
+            )
+            .await
+            .unwrap_or(false)
+    }
+
     pub async fn active_system_name(&self) -> String {
         self.active_system.read().await.clone()
     }

@@ -8,6 +8,7 @@ use axum_extra::extract::CookieJar;
 use rust_embed::Embed;
 use serde::Deserialize;
 
+use aliasman_core::auth::Action;
 use aliasman_core::build_alias;
 use aliasman_core::model::{Alias, AliasFilter};
 
@@ -389,9 +390,20 @@ async fn create_form_handler(
 
 async fn create_alias_handler(
     State(state): State<SharedState>,
-    _auth: RequireAuth,
+    auth: RequireAuth,
     Form(form): Form<CreateAliasForm>,
 ) -> Result<impl IntoResponse, AppError> {
+    let domain = form.domain.trim();
+    if !state
+        .check_permission(auth.session(), &Action::Create, domain)
+        .await
+    {
+        return Err(AppError::Unauthorized(format!(
+            "no create permission on domain '{}'",
+            domain
+        )));
+    }
+
     let addresses: Vec<String> = form
         .email_addresses
         .split(',')
@@ -401,7 +413,7 @@ async fn create_alias_handler(
 
     let alias = build_alias(
         form.alias.trim().to_string(),
-        form.domain.trim().to_string(),
+        domain.to_string(),
         addresses,
         form.description.trim().to_string(),
     );
@@ -427,9 +439,18 @@ async fn create_alias_handler(
 
 async fn edit_form_handler(
     State(state): State<SharedState>,
-    _auth: RequireAuth,
+    auth: RequireAuth,
     Query(form): Query<AliasActionForm>,
 ) -> Result<Html<String>, AppError> {
+    if !state
+        .check_permission(auth.session(), &Action::Create, &form.domain)
+        .await
+    {
+        return Err(AppError::Unauthorized(format!(
+            "no edit permission on domain '{}'",
+            form.domain
+        )));
+    }
     let filter = AliasFilter::default();
     let aliases = state.list_aliases(&filter).await?;
     let existing = aliases
@@ -453,9 +474,19 @@ async fn edit_form_handler(
 
 async fn edit_alias_handler(
     State(state): State<SharedState>,
-    _auth: RequireAuth,
+    auth: RequireAuth,
     Form(form): Form<EditAliasForm>,
 ) -> Result<impl IntoResponse, AppError> {
+    if !state
+        .check_permission(auth.session(), &Action::Create, &form.domain)
+        .await
+    {
+        return Err(AppError::Unauthorized(format!(
+            "no edit permission on domain '{}'",
+            form.domain
+        )));
+    }
+
     let addresses: Vec<String> = form
         .email_addresses
         .split(',')
@@ -480,9 +511,19 @@ async fn edit_alias_handler(
 
 async fn delete_alias_handler(
     State(state): State<SharedState>,
-    _auth: RequireAuth,
+    auth: RequireAuth,
     Form(form): Form<AliasActionForm>,
 ) -> Result<impl IntoResponse, AppError> {
+    if !state
+        .check_permission(auth.session(), &Action::Delete, &form.domain)
+        .await
+    {
+        return Err(AppError::Unauthorized(format!(
+            "no delete permission on domain '{}'",
+            form.domain
+        )));
+    }
+
     alias_action_response(
         state.delete_alias(&form.alias, &form.domain).await,
         format!("Deleted alias {}@{}", form.alias, form.domain),
@@ -491,9 +532,19 @@ async fn delete_alias_handler(
 
 async fn suspend_alias_handler(
     State(state): State<SharedState>,
-    _auth: RequireAuth,
+    auth: RequireAuth,
     Form(form): Form<AliasActionForm>,
 ) -> Result<impl IntoResponse, AppError> {
+    if !state
+        .check_permission(auth.session(), &Action::Suspend, &form.domain)
+        .await
+    {
+        return Err(AppError::Unauthorized(format!(
+            "no suspend permission on domain '{}'",
+            form.domain
+        )));
+    }
+
     alias_action_response(
         state.suspend_alias(&form.alias, &form.domain).await,
         format!("Suspended alias {}@{}", form.alias, form.domain),
@@ -502,9 +553,19 @@ async fn suspend_alias_handler(
 
 async fn unsuspend_alias_handler(
     State(state): State<SharedState>,
-    _auth: RequireAuth,
+    auth: RequireAuth,
     Form(form): Form<AliasActionForm>,
 ) -> Result<impl IntoResponse, AppError> {
+    if !state
+        .check_permission(auth.session(), &Action::Unsuspend, &form.domain)
+        .await
+    {
+        return Err(AppError::Unauthorized(format!(
+            "no unsuspend permission on domain '{}'",
+            form.domain
+        )));
+    }
+
     alias_action_response(
         state.unsuspend_alias(&form.alias, &form.domain).await,
         format!("Unsuspended alias {}@{}", form.alias, form.domain),
