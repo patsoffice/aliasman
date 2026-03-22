@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
 
     let config = AppConfig::load(&cli.config_dir).context("failed to load configuration")?;
 
-    let state = AppState::new(config)
+    let state = AppState::new(config, &cli.config_dir)
         .await
         .context("failed to initialize application state")?;
 

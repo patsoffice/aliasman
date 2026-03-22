@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -9,6 +10,10 @@ use aliasman_core::model::{Alias, AliasFilter};
 use aliasman_core::storage::StorageProvider;
 use aliasman_core::{create_email_provider, create_storage_provider, create_user_store};
 
+use crate::theme::{
+    detect_branding, resolve_theme, BrandingAssets, ThemeColors, ThemeContext,
+};
+
 pub type SharedState = Arc<AppState>;
 
 pub struct AppState {
@@ -16,10 +21,12 @@ pub struct AppState {
     systems: RwLock<HashMap<String, Box<dyn StorageProvider>>>,
     active_system: RwLock<String>,
     user_store: Option<Box<dyn UserStore>>,
+    theme: ThemeColors,
+    branding: BrandingAssets,
 }
 
 impl AppState {
-    pub async fn new(config: AppConfig) -> CoreResult<SharedState> {
+    pub async fn new(config: AppConfig, config_dir: &Path) -> CoreResult<SharedState> {
         let default_system = config.default_system.clone();
         let system_config = config.system(Some(&default_system))?;
 
@@ -50,11 +57,16 @@ impl AppState {
             None
         };
 
+        let theme = resolve_theme(&config.web);
+        let branding = detect_branding(config_dir);
+
         Ok(Arc::new(Self {
             config,
             systems: RwLock::new(systems),
             active_system: RwLock::new(default_system),
             user_store,
+            theme,
+            branding,
         }))
     }
 
@@ -66,6 +78,16 @@ impl AppState {
     /// Returns true if auth is configured.
     pub fn auth_enabled(&self) -> bool {
         self.user_store.is_some()
+    }
+
+    /// Build a `ThemeContext` view model for templates.
+    pub fn theme_context(&self) -> ThemeContext {
+        self.theme.to_context(&self.branding)
+    }
+
+    /// Returns a reference to the branding assets.
+    pub fn branding(&self) -> &BrandingAssets {
+        &self.branding
     }
 
     /// Check if a user has permission for an action on the active system.
