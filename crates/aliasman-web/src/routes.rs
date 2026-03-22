@@ -15,6 +15,7 @@ use aliasman_core::model::{Alias, AliasFilter};
 use crate::auth::{self, LoginForm, OptionalAuth, RequireAuth};
 use crate::error::AppError;
 use crate::state::SharedState;
+use crate::theme::ThemeContext;
 
 // -- Static Assets --
 
@@ -149,6 +150,7 @@ struct IndexTemplate {
     auth_enabled: bool,
     is_superuser: bool,
     username: String,
+    theme: ThemeContext,
 }
 
 #[derive(Template)]
@@ -204,6 +206,7 @@ struct EditFormTemplate {
 #[template(path = "login.html")]
 struct LoginTemplate {
     error_message: String,
+    theme: ThemeContext,
 }
 
 #[derive(Template)]
@@ -211,6 +214,7 @@ struct LoginTemplate {
 struct AdminTemplate {
     users: Vec<UserView>,
     username: String,
+    theme: ThemeContext,
 }
 
 #[derive(Template)]
@@ -239,6 +243,7 @@ pub fn router(state: SharedState) -> Router {
         .route("/login", get(login_page_handler).post(login_submit_handler))
         .route("/logout", post(logout_handler))
         .route("/static/{*path}", get(static_handler))
+        .route("/branding/{*path}", get(branding_handler))
         .route("/health", get(health_handler))
         // Protected routes (RequireAuth extractor handles redirect)
         .route("/", get(index_handler))
@@ -298,6 +303,7 @@ async fn login_page_handler(
 
     let template = LoginTemplate {
         error_message: String::new(),
+        theme: state.theme_context(),
     };
     Html(
         template
@@ -312,11 +318,12 @@ async fn login_submit_handler(
     jar: CookieJar,
     Form(form): Form<LoginForm>,
 ) -> impl IntoResponse {
-    match auth::login_handler(state, jar, form).await {
+    match auth::login_handler(state.clone(), jar, form).await {
         Ok((jar, redirect)) => (jar, redirect).into_response(),
         Err((_status, message)) => {
             let template = LoginTemplate {
                 error_message: message,
+                theme: state.theme_context(),
             };
             Html(
                 template
@@ -360,6 +367,7 @@ async fn index_handler(
         auth_enabled: state.auth_enabled(),
         is_superuser: auth.session().is_superuser,
         username: auth.session().username.clone(),
+        theme: state.theme_context(),
     };
 
     Ok(Html(template.render().map_err(|e| {
@@ -738,6 +746,7 @@ async fn admin_users_handler(
     let template = AdminTemplate {
         users,
         username: auth.session().username.clone(),
+        theme: state.theme_context(),
     };
     Ok(Html(template.render().map_err(|e| {
         AppError::Internal(format!("template render error: {}", e))
@@ -955,6 +964,38 @@ async fn admin_revoke_handler(
 
     // Re-render the permissions form
     admin_permissions_handler(State(state), auth, Path(user_id)).await
+}
+
+async fn branding_handler(
+    State(state): State<SharedState>,
+    Path(path): Path<String>,
+) -> impl IntoResponse {
+    let branding = state.branding();
+
+    // Only serve files that were detected at startup to prevent path traversal
+    let file = [&branding.logo, &branding.header]
+        .into_iter()
+        .flatten()
+        .find(|f| f.filename == path);
+
+    match file {
+        Some(branding_file) => match tokio::fs::read(&branding_file.path).await {
+            Ok(data) => (
+                StatusCode::OK,
+                [
+                    (header::CONTENT_TYPE, branding_file.mime.clone()),
+                    (
+                        header::CACHE_CONTROL,
+                        "public, max-age=3600".to_string(),
+                    ),
+                ],
+                data,
+            )
+                .into_response(),
+            Err(_) => StatusCode::NOT_FOUND.into_response(),
+        },
+        None => StatusCode::NOT_FOUND.into_response(),
+    }
 }
 
 async fn static_handler(Path(path): Path<String>) -> impl IntoResponse {
