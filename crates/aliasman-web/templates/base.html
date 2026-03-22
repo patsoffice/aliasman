@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aliasman{% block title %}{% endblock %}</title>
+    {% match theme.favicon_url %}{% when Some with (url) %}<link rel="icon" href="{{ url }}">{% when None %}<link rel="icon" href="/static/favicon.svg">{% endmatch %}
     <script src="/static/htmx.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -49,9 +50,20 @@
         <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             {% match theme.logo_url %}
             {% when Some with (url) %}
-            <a href="/"><img src="{{ url }}" alt="Aliasman" class="h-8"></a>
+            <a href="/">
+                {% match theme.logo_dark_url %}
+                {% when Some with (dark_url) %}
+                <img src="{{ url }}" alt="Aliasman" class="h-8 dark:hidden">
+                <img src="{{ dark_url }}" alt="Aliasman" class="h-8 hidden dark:block">
+                {% when None %}
+                <img src="{{ url }}" alt="Aliasman" class="h-8">
+                {% endmatch %}
+            </a>
             {% when None %}
-            <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Aliasman</h1>
+            <a href="/">
+                <img src="/static/logo.svg" alt="Aliasman" class="h-8 dark:hidden">
+                <img src="/static/logo-dark.svg" alt="Aliasman" class="h-8 hidden dark:block">
+            </a>
             {% endmatch %}
             <div class="flex items-center gap-4">
                 {% block nav_right %}{% endblock %}

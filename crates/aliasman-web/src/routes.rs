@@ -973,10 +973,15 @@ async fn branding_handler(
     let branding = state.branding();
 
     // Only serve files that were detected at startup to prevent path traversal
-    let file = [&branding.logo, &branding.header]
-        .into_iter()
-        .flatten()
-        .find(|f| f.filename == path);
+    let file = [
+        &branding.logo,
+        &branding.logo_dark,
+        &branding.header,
+        &branding.favicon,
+    ]
+    .into_iter()
+    .flatten()
+    .find(|f| f.filename == path);
 
     match file {
         Some(branding_file) => match tokio::fs::read(&branding_file.path).await {

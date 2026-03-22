@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="crates/aliasman-web/static/logo.svg" alt="Aliasman" height="80">
+</p>
+
 # Aliasman
 
 Aliasman is a tool for managing a large number of email aliases, with both a CLI and a web frontend. It supports pluggable storage and email providers, allowing you to manage alias metadata locally while controlling the actual email routing through your email service provider.
@@ -519,14 +523,19 @@ accent = "#8b5cf6"
 accent_hover = "#a78bfa"
 ```
 
-To add a custom logo or navigation bar background image, place files in the
-`branding/` subdirectory of your config directory (e.g.
-`~/.config/aliasman/branding/`). Files are auto-detected by name:
+To add custom branding, place files in the `branding/` subdirectory of your
+config directory (e.g. `~/.config/aliasman/branding/`). Files are auto-detected
+by name:
 
 - **Logo** — `logo.png`, `logo.svg`, or `logo.jpg` — replaces the "Aliasman"
   text in the navigation bar
+- **Dark-mode logo** — `logo-dark.png`, `logo-dark.svg`, or `logo-dark.jpg` —
+  shown instead of the regular logo when dark mode is active. If not provided,
+  the regular logo is used in both modes.
 - **Header background** — `header.png`, `header.jpg`, or `header.svg` — used as
   a background image behind the navigation bar
+- **Favicon** — `favicon.svg`, `favicon.ico`, or `favicon.png` — browser tab
+  icon
 
 No configuration is needed — just drop the files in place and restart the web
 server.
@@ -613,4 +622,8 @@ git push --tags
 ## Planned Features
 
 - **Additional CLI commands** — sync, sync-from-email
-- **Additional providers** — files storage, Google Workspace email
+- **Additional providers** — files storage
+
+## No Longer Planned Features
+
+- **Google Workspace email** - only 30 aliases are supported so it doesn't make sense

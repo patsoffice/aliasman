@@ -17,7 +17,9 @@ pub struct ThemeColors {
 /// Detected branding assets from the config directory.
 pub struct BrandingAssets {
     pub logo: Option<BrandingFile>,
+    pub logo_dark: Option<BrandingFile>,
     pub header: Option<BrandingFile>,
+    pub favicon: Option<BrandingFile>,
 }
 
 pub struct BrandingFile {
@@ -37,7 +39,9 @@ pub struct ThemeContext {
     pub dark_accent: String,
     pub dark_accent_hover: String,
     pub logo_url: Option<String>,
+    pub logo_dark_url: Option<String>,
     pub header_url: Option<String>,
+    pub favicon_url: Option<String>,
 }
 
 struct Preset {
@@ -168,25 +172,47 @@ pub fn detect_branding(config_dir: &Path) -> BrandingAssets {
     let branding_dir = config_dir.join("branding");
 
     BrandingAssets {
-        logo: detect_file(&branding_dir, "logo"),
-        header: detect_file(&branding_dir, "header"),
+        logo: detect_image(&branding_dir, "logo"),
+        logo_dark: detect_image(&branding_dir, "logo-dark"),
+        header: detect_image(&branding_dir, "header"),
+        favicon: detect_favicon(&branding_dir),
     }
 }
 
-fn detect_file(dir: &Path, base_name: &str) -> Option<BrandingFile> {
-    const EXTENSIONS: &[(&str, &str)] = &[
-        ("svg", "image/svg+xml"),
-        ("png", "image/png"),
-        ("jpg", "image/jpeg"),
-    ];
+const IMAGE_EXTENSIONS: &[(&str, &str)] = &[
+    ("svg", "image/svg+xml"),
+    ("png", "image/png"),
+    ("jpg", "image/jpeg"),
+];
 
-    for (ext, mime) in EXTENSIONS {
+fn detect_image(dir: &Path, base_name: &str) -> Option<BrandingFile> {
+    for (ext, mime) in IMAGE_EXTENSIONS {
         let filename = format!("{}.{}", base_name, ext);
         let path = dir.join(&filename);
         if path.is_file() {
             return Some(BrandingFile {
                 path,
                 filename,
+                mime: mime.to_string(),
+            });
+        }
+    }
+    None
+}
+
+fn detect_favicon(dir: &Path) -> Option<BrandingFile> {
+    const FAVICON_FILES: &[(&str, &str)] = &[
+        ("favicon.svg", "image/svg+xml"),
+        ("favicon.ico", "image/x-icon"),
+        ("favicon.png", "image/png"),
+    ];
+
+    for (filename, mime) in FAVICON_FILES {
+        let path = dir.join(filename);
+        if path.is_file() {
+            return Some(BrandingFile {
+                path,
+                filename: filename.to_string(),
                 mime: mime.to_string(),
             });
         }
@@ -210,8 +236,16 @@ impl ThemeColors {
                 .logo
                 .as_ref()
                 .map(|f| format!("/branding/{}", f.filename)),
+            logo_dark_url: branding
+                .logo_dark
+                .as_ref()
+                .map(|f| format!("/branding/{}", f.filename)),
             header_url: branding
                 .header
+                .as_ref()
+                .map(|f| format!("/branding/{}", f.filename)),
+            favicon_url: branding
+                .favicon
                 .as_ref()
                 .map(|f| format!("/branding/{}", f.filename)),
         }
@@ -274,7 +308,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let branding = detect_branding(dir.path());
         assert!(branding.logo.is_none());
+        assert!(branding.logo_dark.is_none());
         assert!(branding.header.is_none());
+        assert!(branding.favicon.is_none());
     }
 
     #[test]
@@ -283,16 +319,25 @@ mod tests {
         let branding_dir = dir.path().join("branding");
         std::fs::create_dir(&branding_dir).unwrap();
         std::fs::write(branding_dir.join("logo.png"), b"fake png").unwrap();
+        std::fs::write(branding_dir.join("logo-dark.png"), b"fake dark").unwrap();
         std::fs::write(branding_dir.join("header.jpg"), b"fake jpg").unwrap();
+        std::fs::write(branding_dir.join("favicon.ico"), b"fake ico").unwrap();
 
         let branding = detect_branding(dir.path());
         let logo = branding.logo.unwrap();
         assert_eq!(logo.filename, "logo.png");
         assert_eq!(logo.mime, "image/png");
 
+        let logo_dark = branding.logo_dark.unwrap();
+        assert_eq!(logo_dark.filename, "logo-dark.png");
+
         let header = branding.header.unwrap();
         assert_eq!(header.filename, "header.jpg");
         assert_eq!(header.mime, "image/jpeg");
+
+        let favicon = branding.favicon.unwrap();
+        assert_eq!(favicon.filename, "favicon.ico");
+        assert_eq!(favicon.mime, "image/x-icon");
     }
 
     #[test]
@@ -310,6 +355,20 @@ mod tests {
     }
 
     #[test]
+    fn test_detect_favicon_svg_priority() {
+        let dir = tempfile::tempdir().unwrap();
+        let branding_dir = dir.path().join("branding");
+        std::fs::create_dir(&branding_dir).unwrap();
+        std::fs::write(branding_dir.join("favicon.svg"), b"<svg/>").unwrap();
+        std::fs::write(branding_dir.join("favicon.ico"), b"fake ico").unwrap();
+
+        let branding = detect_branding(dir.path());
+        let favicon = branding.favicon.unwrap();
+        assert_eq!(favicon.filename, "favicon.svg");
+        assert_eq!(favicon.mime, "image/svg+xml");
+    }
+
+    #[test]
     fn test_theme_context_urls() {
         let colors = resolve_theme(&WebConfig::default());
         let branding = BrandingAssets {
@@ -318,10 +377,25 @@ mod tests {
                 filename: "logo.png".to_string(),
                 mime: "image/png".to_string(),
             }),
+            logo_dark: Some(BrandingFile {
+                path: PathBuf::from("/tmp/logo-dark.png"),
+                filename: "logo-dark.png".to_string(),
+                mime: "image/png".to_string(),
+            }),
             header: None,
+            favicon: Some(BrandingFile {
+                path: PathBuf::from("/tmp/favicon.ico"),
+                filename: "favicon.ico".to_string(),
+                mime: "image/x-icon".to_string(),
+            }),
         };
         let ctx = colors.to_context(&branding);
         assert_eq!(ctx.logo_url.as_deref(), Some("/branding/logo.png"));
+        assert_eq!(
+            ctx.logo_dark_url.as_deref(),
+            Some("/branding/logo-dark.png")
+        );
         assert!(ctx.header_url.is_none());
+        assert_eq!(ctx.favicon_url.as_deref(), Some("/branding/favicon.ico"));
     }
 }
