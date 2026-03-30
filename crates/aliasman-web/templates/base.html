@@ -35,6 +35,33 @@
             --color-accent: {{ theme.dark_accent }};
             --color-accent-hover: {{ theme.dark_accent_hover }};
         }
+        .copy-alias {
+            cursor: pointer;
+            position: relative;
+        }
+        .copy-alias:hover {
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+        .copy-alias.copied::after {
+            content: 'Copied!';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: -1.75rem;
+            background: #1f2937;
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            animation: fade-out 1.5s forwards;
+        }
+        @keyframes fade-out {
+            0%, 70% { opacity: 1; }
+            100% { opacity: 0; }
+        }
     </style>
     <script>
         (function() {
@@ -95,6 +122,12 @@
             document.getElementById('theme-icon-dark').classList.toggle('hidden', isDark);
         }
         updateThemeIcon();
+        function copyAlias(el) {
+            navigator.clipboard.writeText(el.textContent).then(function() {
+                el.classList.add('copied');
+                setTimeout(function() { el.classList.remove('copied'); }, 1500);
+            });
+        }
     </script>
 </body>
 </html>

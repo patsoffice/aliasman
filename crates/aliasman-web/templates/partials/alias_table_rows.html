@@ -1,6 +1,6 @@
 {% for alias in aliases %}
 <tr class="{% if alias.suspended %}bg-red-50 dark:bg-red-900/20 text-gray-400 dark:text-gray-500{% else %}hover:bg-gray-50 dark:hover:bg-gray-700/50{% endif %}">
-    <td class="px-4 py-2 text-sm font-mono dark:text-gray-200">{{ alias.full_alias }}</td>
+    <td class="px-4 py-2 text-sm font-mono dark:text-gray-200"><span class="copy-alias" onclick="copyAlias(this)" title="Click to copy">{{ alias.full_alias }}</span></td>
     <td class="px-4 py-2 text-sm dark:text-gray-200">{{ alias.email_addresses }}</td>
     <td class="px-4 py-2 text-sm dark:text-gray-200">{{ alias.description }}</td>
     <td class="px-4 py-2 text-sm">
