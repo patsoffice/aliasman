@@ -59,3 +59,27 @@ cargo run --package aliasman-web                                # Run the web fr
 - Web HTMX: use `hx-swap="innerHTML show:#target:top"` to scroll to swapped content
 - `StorageProvider::close()` must be called to flush writes (triggers S3 index upload)
 - The dual-write order matters: email provider first, then storage — if email fails, storage stays consistent
+
+## Issue Tracking (beads)
+
+This project uses `br` (beads_rust) for local issue tracking. Issues live in `.beads/` and are committed to git.
+
+```bash
+br list                                        # Show all open issues
+br list --status open --priority 0-1 --json    # High-priority open issues (machine-readable)
+br ready --json                                # Actionable issues (not blocked, not deferred)
+br show <id>                                   # Show issue details
+br create "Title" -p 2 --type feature          # Create an issue (types: feature, bug, task, chore)
+br update <id> --status in_progress            # Claim work
+br close <id> --reason "explanation"           # Close with reason
+br dep add <id> <depends-on-id>                # Express dependency
+br sync --flush-only                           # Export to JSONL for git commit
+```
+
+- **Priority scale**: 0 = critical, 1 = high, 2 = medium, 3 = low, 4 = backlog
+- **Statuses**: `open`, `in_progress`, `deferred`, `closed`
+- **Labels**: use to categorize by area (`core`, `cli`, `web`, etc.)
+- Use `RUST_LOG=error` prefix when parsing `--json` output to suppress log noise
+- `br` never auto-commits — run `br sync --flush-only` then commit `.beads/` manually
+- Check `br ready --json` at the start of a session to see what's actionable
+- Close issues with descriptive `--reason` so context is preserved
