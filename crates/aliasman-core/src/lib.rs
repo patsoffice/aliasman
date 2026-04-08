@@ -403,6 +403,157 @@ pub async fn audit_aliases(
     })
 }
 
+/// Result of a sync operation.
+#[derive(Debug)]
+pub struct SyncResult {
+    pub created: usize,
+    pub deleted: usize,
+    pub updated: usize,
+}
+
+/// Sync aliases from storage to the email provider (storage is authoritative).
+///
+/// For each diff from audit:
+/// - `StorageOnly` (active): create on email provider
+/// - `EmailOnly`: delete from email provider
+/// - `AddressMismatch`: delete + recreate on email with storage addresses
+/// - Suspended aliases found on email: delete from email provider
+pub async fn sync_aliases(
+    storage: &dyn StorageProvider,
+    email: &dyn EmailProvider,
+    domain: &str,
+    dry_run: bool,
+) -> Result<SyncResult> {
+    let audit = audit_aliases(storage, email, domain).await?;
+    let mut result = SyncResult {
+        created: 0,
+        deleted: 0,
+        updated: 0,
+    };
+
+    for diff in &audit.diffs {
+        match diff {
+            AuditDiff::StorageOnly {
+                alias,
+                domain,
+                suspended,
+            } => {
+                if !suspended {
+                    if !dry_run {
+                        let sa = storage.get(alias, domain).await?.ok_or_else(|| {
+                            Error::AliasNotFound {
+                                alias: alias.clone(),
+                                domain: domain.clone(),
+                            }
+                        })?;
+                        email
+                            .alias_create(alias, domain, &sa.email_addresses)
+                            .await?;
+                    }
+                    result.created += 1;
+                }
+            }
+            AuditDiff::EmailOnly { alias, domain, .. } => {
+                if !dry_run {
+                    email.alias_delete(alias, domain).await?;
+                }
+                result.deleted += 1;
+            }
+            AuditDiff::AddressMismatch {
+                alias,
+                domain,
+                storage_addresses,
+                ..
+            } => {
+                if !dry_run {
+                    email.alias_delete(alias, domain).await?;
+                    email.alias_create(alias, domain, storage_addresses).await?;
+                }
+                result.updated += 1;
+            }
+        }
+    }
+
+    Ok(result)
+}
+
+/// Sync aliases from the email provider into storage (email provider is authoritative).
+///
+/// For each diff from audit:
+/// - `EmailOnly`: add to storage with current timestamp
+/// - `StorageOnly` (active): delete from storage
+/// - `AddressMismatch`: update storage with email addresses
+/// - Suspended aliases found on email: update storage addresses and unsuspend
+pub async fn sync_from_email(
+    storage: &dyn StorageProvider,
+    email: &dyn EmailProvider,
+    domain: &str,
+    dry_run: bool,
+) -> Result<SyncResult> {
+    let audit = audit_aliases(storage, email, domain).await?;
+    let mut result = SyncResult {
+        created: 0,
+        deleted: 0,
+        updated: 0,
+    };
+
+    for diff in &audit.diffs {
+        match diff {
+            AuditDiff::EmailOnly {
+                alias,
+                domain,
+                email_addresses,
+            } => {
+                if !dry_run {
+                    let new_alias = build_alias(
+                        alias.clone(),
+                        domain.clone(),
+                        email_addresses.clone(),
+                        String::new(),
+                    );
+                    storage.put(&new_alias).await?;
+                }
+                result.created += 1;
+            }
+            AuditDiff::StorageOnly {
+                alias,
+                domain,
+                suspended,
+            } => {
+                if !suspended {
+                    if !dry_run {
+                        storage.delete(alias, domain).await?;
+                    }
+                    result.deleted += 1;
+                }
+            }
+            AuditDiff::AddressMismatch {
+                alias,
+                domain,
+                email_addresses,
+                ..
+            } => {
+                if !dry_run {
+                    let mut existing =
+                        storage
+                            .get(alias, domain)
+                            .await?
+                            .ok_or_else(|| Error::AliasNotFound {
+                                alias: alias.clone(),
+                                domain: domain.clone(),
+                            })?;
+                    existing.email_addresses = email_addresses.clone();
+                    existing.modified_at = Utc::now();
+                    storage.update(&existing).await?;
+                }
+                result.updated += 1;
+            }
+        }
+    }
+
+    Ok(result)
+}
+
 /// Build a new Alias struct with sensible defaults for timestamps.
 pub fn build_alias(
     alias_name: String,

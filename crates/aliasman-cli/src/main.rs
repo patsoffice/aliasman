@@ -49,6 +49,20 @@ enum Commands {
     /// Print version information
     Version,
 
+    /// Sync aliases from storage to email provider (storage is authoritative)
+    Sync {
+        /// Domain to sync
+        #[arg(short, long)]
+        domain: Option<String>,
+    },
+
+    /// Sync aliases from email provider into storage (email is authoritative)
+    SyncFromEmail {
+        /// Domain to sync
+        #[arg(short, long)]
+        domain: Option<String>,
+    },
+
     /// Storage management commands
     Storage {
         #[command(subcommand)]
@@ -83,6 +97,49 @@ async fn main() -> Result<()> {
                 create_providers(system).context("failed to create providers")?;
 
             commands::audit::handle(storage.as_mut(), email.as_ref(), domain).await?;
+        }
+
+        Commands::Sync { domain } => {
+            let config =
+                AppConfig::load(&cli.config_dir).context("failed to load configuration")?;
+            let system = config
+                .system(cli.system.as_deref())
+                .context("failed to resolve system")?;
+
+            let domain = domain
+                .as_deref()
+                .or(system.domain.as_deref())
+                .context("--domain is required (no default domain configured)")?;
+
+            let (mut storage, email) =
+                create_providers(system).context("failed to create providers")?;
+
+            commands::sync::handle_sync(storage.as_mut(), email.as_ref(), domain, cli.dry_run)
+                .await?;
+        }
+
+        Commands::SyncFromEmail { domain } => {
+            let config =
+                AppConfig::load(&cli.config_dir).context("failed to load configuration")?;
+            let system = config
+                .system(cli.system.as_deref())
+                .context("failed to resolve system")?;
+
+            let domain = domain
+                .as_deref()
+                .or(system.domain.as_deref())
+                .context("--domain is required (no default domain configured)")?;
+
+            let (mut storage, email) =
+                create_providers(system).context("failed to create providers")?;
+
+            commands::sync::handle_sync_from_email(
+                storage.as_mut(),
+                email.as_ref(),
+                domain,
+                cli.dry_run,
+            )
+            .await?;
         }
 
         Commands::Config => {
